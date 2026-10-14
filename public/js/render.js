@@ -192,9 +192,10 @@ export class Renderer {
       case 'recover': pose = 'slam'; break;
       default: pose = 'idle0';
     }
-    if (p.state === 'down' || p.state === 'dead') { const spr = charSprite('player', 'hurt'); this.blit(g, spr, sx, sy + 8, p.dir, rot); }
+    const skin = w.hero ? w.hero.skin : 'player';
+    if (p.state === 'down' || p.state === 'dead') { const spr = charSprite(skin, 'hurt'); this.blit(g, spr, sx, sy + 8, p.dir, rot); }
     else {
-      const spr = charSprite('player', pose);
+      const spr = charSprite(skin, pose);
       const blink = p.inv > 0 && p.state !== 'special' && p.state !== 'spawn' && ((this.frame >> 2) & 1);
       const rest = p.state === 'idle' || p.state === 'walk' || p.state === 'jump' || p.state === 'spawn' || p.state === 'getup' || p.state === 'recover';
       const drawBody = () => {
@@ -382,7 +383,7 @@ export class Renderer {
       const sc = Math.min(11 / ws.w, 11 / ws.h);
       // (icon)
       g.drawImage(ws.img, Math.round(x0 + bw + 4 + (11 - ws.w * sc) / 2), Math.round(cy + 7 + (11 - ws.h * sc) / 2), Math.round(ws.w * sc), Math.round(ws.h * sc));
-      g.font = CJK; g.textAlign = 'left'; g.fillStyle = '#1b1026'; g.fillText(w.name, x0 + 1, cy + 28); g.fillStyle = w.color; g.fillText(w.name, x0, cy + 27);
+      g.font = CJK; g.textAlign = 'left'; g.fillStyle = '#1b1026'; g.fillText(w.hero.name + '·' + w.name, x0 + 1, cy + 28); g.fillStyle = w.color; g.fillText(w.hero.name + '·' + w.name, x0, cy + 27);
       // combo
       if (p.hits >= 2 && p.comboT > 0) {
         const cxx = right ? x0 - 6 : x0 + bw + 24;

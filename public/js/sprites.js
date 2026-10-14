@@ -194,6 +194,39 @@ const LEGS = {
 };
 
 export const HEADS = {
+  band: [ // headband + spiky hair
+    '..............',
+    '...o.oo.oo....',
+    '..obbbbbbbbo..',
+    '.obbbbbbbbbbo.',
+    '.oHHHHHHHHHHo.',
+    '..ossssssso...',
+    '..oseesseeso..',
+    '..osssssssso..',
+    '...osssssso...',
+  ],
+  pigtail: [ // cap + pigtails
+    '....oooooo....',
+    '...ohhhhhho...',
+    '..ohhhHHhhho..',
+    'o.ohhhhhhhho.o',
+    'oboHHHHHHHHobo',
+    'obossssssssobo',
+    'oboseesseesobo',
+    '.oosssssssoo..',
+    '...osssssso...',
+  ],
+  visor: [ // backwards cap with visor shades
+    '....oooooo....',
+    '...ohhhhhho...',
+    '..ohhhhhhhhHo.',
+    '..ohhhhhhhhHo.',
+    '..ohhhhhhhho..',
+    '..ossssssso...',
+    '.oggggggggggo.',
+    '..osssssssso..',
+    '...osssssso...',
+  ],
   player: [ // red cap, shades
     '....oooooo....',
     '...ohhhhhho...',
@@ -241,6 +274,11 @@ export const HEADS = {
 };
 
 export const CHARS = {
+  bro:  { o: PAL.o, x: '#e23c2c', a: '#fff1d6', s: '#f7c59b', p: '#2f4fb3', f: '#1b1026', h: '#e23c2c', H: '#ffd23f', g: '#1b1026', e: '#1b1026', b: '#1b1026' },
+  girl: { o: PAL.o, x: '#f2a21b', a: '#fff1d6', s: '#f7c59b', p: '#2b7a3a', f: '#1b1026', h: '#f2a21b', H: '#e23c2c', g: '#1b1026', e: '#1b1026', b: '#6b3a1a' },
+  kid:  { o: PAL.o, x: '#fff1d6', a: '#e23c2c', s: '#f3cfa8', p: '#1b1026', f: '#e23c2c', h: '#2f4fb3', H: '#fff6e5', g: '#1b1026', e: '#1b1026', b: '#1b1026' },
+  sis:  { o: PAL.o, x: '#ffd23f', a: '#e23c2c', s: '#e9b98a', p: '#1b1026', f: '#e23c2c', h: '#e23c2c', H: '#e23c2c', g: '#1b1026', e: '#1b1026', b: '#3a2416' },
+  chef: { o: PAL.o, x: '#2b7a3a', a: '#fff1d6', s: '#f3cfa8', p: '#1b1026', f: '#1b1026', h: '#ffffff', H: '#2b7a3a', g: '#1b1026', e: '#1b1026', b: '#1b1026' },
   player: { o: PAL.o, x: '#e23c2c', a: '#fff1d6', s: '#f7c59b', p: '#2f4fb3', f: '#1b1026', h: '#e23c2c', H: '#ffd23f', g: '#1b1026', e: '#1b1026', b: '#1b1026' },
   sushi:  { o: PAL.o, x: '#2a4a9c', a: '#f2f2f2', s: '#f3cfa8', p: '#1b2a5a', f: '#1b1026', h: '#ffffff', H: '#d93a3a', e: '#1b1026', b: '#1b1026' },
   monk:   { o: PAL.o, x: '#e07a1f', a: '#f0b23c', s: '#e9b98a', p: '#b05a16', f: '#4a2a12', h: '#e9b98a', H: '#b03030', e: '#1b1026', b: '#3a2416' },
@@ -257,8 +295,9 @@ export const POSES = {
   dash: ['thrust', 'lunge'], throw: ['swing', 'lunge'], getup: ['slam', 'crouch'], spray: ['shoot', 'lunge'], dump: ['raise', 'stand'],
 };
 
+const HERO_HEAD = { bro: 'player', girl: 'pigtail', kid: 'visor', sis: 'band', chef: 'sushi' };
 export function charSprite(charId, pose) {
-  const head = HEADS[charId] || HEADS.player;
+  const head = HEADS[HERO_HEAD[charId] || charId] || HEADS.player;
   const [t, l] = POSES[pose] || POSES.idle0;
   const rows = humanoid(head, TORSO[t], LEGS[l]);
   return bake(rows, CHARS[charId] || CHARS.player, 'c:' + charId + ':' + pose);

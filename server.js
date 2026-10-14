@@ -77,7 +77,10 @@ wss.on('connection', (ws) => {
       const r = getRoom(code);
       if (r.clients.size >= MAX_PLAYERS) { ws.send(JSON.stringify({ t: 'err', msg: '房間已滿 (最多 4 人)' })); return; }
       const name = String(d.name || 'P').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 8) || 'P' + (r.clients.size + 1);
-      const p = addPlayer(r.sim, { name, weapon: d.weapon | 0 });
+      let weapon = Math.max(0, Math.min(4, d.weapon | 0));
+      const taken = new Set(r.sim.players.map(q => q.weapon));
+      if (taken.has(weapon)) { weapon = [0, 1, 2, 3, 4].find(w => !taken.has(w)); }
+      const p = addPlayer(r.sim, { name, weapon });
       if (!p) { ws.send(JSON.stringify({ t: 'err', msg: '房間已滿' })); return; }
       me = { id: p.id, held: 0, pressed: 0, name };
       room = r; r.clients.set(ws, me);
@@ -89,7 +92,7 @@ wss.on('connection', (ws) => {
     }
     if (!room || !me) return;
     if (d.t === 'i') { me.held = d.h | 0; me.pressed |= d.p | 0; return; }
-    if (d.t === 'weapon') { const p = room.sim.players.find(q => q.id === me.id); if (p && room.sim.phase === PHASE.LOBBY) { p.weapon = Math.max(0, Math.min(4, d.w | 0)); broadcastLobby(room); } return; }
+    if (d.t === 'weapon') { const p = room.sim.players.find(q => q.id === me.id); const want = Math.max(0, Math.min(4, d.w | 0)); if (p && room.sim.phase === PHASE.LOBBY && !room.sim.players.some(q => q.id !== p.id && q.weapon === want)) { p.weapon = want; broadcastLobby(room); } return; }
     if (d.t === 'start') {
       if (room.hostId !== me.id) return;
       if (room.sim.phase === PHASE.LOBBY || room.sim.phase === PHASE.OVER) { startGame(room.sim); room.pendingEv.push(...room.sim.events); broadcastLobby(room); console.log('[room]', room.code, 'start'); }

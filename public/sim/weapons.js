@@ -14,7 +14,7 @@
 
 export const WEAPONS = [
   {
-    id: 'drumstick', name: '巨大炸雞腿', en: 'GIANT DRUMSTICK', speed: 0.82, color: '#e8a040', item: 'drumstick',
+    id: 'drumstick', hero: { name: '炸雞哥', en: 'CHICKEN BRO', skin: 'bro', blurb: '速食店的扛霸子，雞腿越大越好。' }, name: '巨大炸雞腿', en: 'GIANT DRUMSTICK', speed: 0.82, color: '#e8a040', item: 'drumstick',
     desc: '雙手抱著整隻炸雞腿掄下去。第三下砸地：地裂、全場擊飛、把倒地敵人砸進土裡。',
     combo: [
       { name: '重砸', dur: 36, fwd: 1.6, cancel: 24, pose: 'swing', hold: 'keep',
@@ -34,7 +34,7 @@ export const WEAPONS = [
       rot: [[0, -150], [4, 160], [60, 160]] },
   },
   {
-    id: 'burger', name: '漢堡投擲', en: 'BURGER TOSS', speed: 1.05, color: '#e8a84a', item: 'bag',
+    id: 'burger', hero: { name: '漢堡妹', en: 'BURGER GIRL', skin: 'girl', blurb: '外送三分鐘，漢堡丟得比車還快。' }, name: '漢堡投擲', en: 'BURGER TOSS', speed: 1.05, color: '#e8a84a', item: 'bag',
     desc: '從紙袋掏漢堡連丟，落地彈跳再炸開。第三下丟出三層巨無霸，砸地炸出小坑。',
     combo: [
       { name: '丟漢堡', dur: 18, fwd: 1, cancel: 10, pose: 'throw', hold: 'gone',
@@ -49,7 +49,7 @@ export const WEAPONS = [
       proj: { at: 5, type: 'burger', n: 2, spread: 0.6, speed: 4, vz: -1.5, grav: 0.2, life: 90, dmg: 9, kbx: 3, kbz: 3, hs: 4, shake: 2, pow: 1, bounce: true } },
   },
   {
-    id: 'cola', name: '可樂噴射', en: 'COLA JET', speed: 1.0, color: '#e23c2c', item: 'cola',
+    id: 'cola', hero: { name: '可樂小子', en: 'COLA KID', skin: 'kid', blurb: '搖到爆炸才算一杯好可樂。' }, name: '可樂噴射', en: 'COLA JET', speed: 1.0, color: '#e23c2c', item: 'cola',
     desc: '搖罐後噴出高壓可樂水柱，把敵人沖起來吊在空中。第三下加曼陀珠，整罐爆炸。',
     combo: [
       { name: '搖罐噴射', dur: 34, fwd: -0.6, cancel: 28, pose: 'spray', hold: 'keep', stream: [8, 30],
@@ -78,7 +78,7 @@ export const WEAPONS = [
       ] },
   },
   {
-    id: 'fries', name: '薯條飛鏢', en: 'FRIES DARTS', speed: 1.12, color: '#f6d02a', item: 'fries',
+    id: 'fries', hero: { name: '薯條姐', en: 'FRIES SIS', skin: 'sis', blurb: '一次抓一把，一根都不會漏。' }, name: '薯條飛鏢', en: 'FRIES DARTS', speed: 1.12, color: '#f6d02a', item: 'fries',
     desc: '抓一把薯條快速甩出去當飛鏢。終結技：整桶薯條倒在敵人頭上。',
     combo: [
       { name: '甩薯條', dur: 12, fwd: 1.5, cancel: 7, pose: 'throw', hold: 'keep',
@@ -95,7 +95,7 @@ export const WEAPONS = [
       proj: { at: 4, type: 'friesdart', n: 5, spread: 0.8, speed: 6, vz: -2.5, grav: 0.05, life: 40, dmg: 4, kbx: 1, kbz: 3, hs: 2, shake: 1, pow: 1 } },
   },
   {
-    id: 'pizza', name: '披薩滾球', en: 'PIZZA BOWLING', speed: 1.0, color: '#e0462a', item: 'pizzabox',
+    id: 'pizza', hero: { name: '披薩師傅', en: 'PIZZA CHEF', skin: 'chef', blurb: '手工現做，保齡球級硬度。' }, name: '披薩滾球', en: 'PIZZA BOWLING', speed: 1.0, color: '#e0462a', item: 'pizzabox',
     desc: '把整個披薩當保齡球滾出去，撞倒一整排。終結技：披薩拋上天旋轉再砸下來。',
     combo: [
       { name: '滾披薩', dur: 22, fwd: 1.5, cancel: 14, pose: 'swing', hold: 'keep',

@@ -4,7 +4,7 @@ import { IN } from '../sim/constants.js';
 const KEYS = {
   ArrowLeft: IN.L, KeyA: IN.L, ArrowRight: IN.R, KeyD: IN.R, ArrowUp: IN.U, KeyW: IN.U, ArrowDown: IN.D, KeyS: IN.D,
   KeyJ: IN.ATK, KeyZ: IN.ATK, Space: IN.ATK, KeyK: IN.JUMP, KeyX: IN.JUMP, KeyL: IN.DASH, KeyC: IN.DASH, ShiftLeft: IN.DASH,
-  KeyI: IN.SPEC, KeyV: IN.SPEC, KeyQ: IN.SWAP, Tab: IN.SWAP, KeyE: IN.SWAP,
+  KeyI: IN.SPEC, KeyV: IN.SPEC, 
 };
 
 export class Input {
@@ -46,7 +46,6 @@ export class Input {
       if (b(1)) m |= IN.JUMP;          // B
       if (b(5) || b(7)) m |= IN.DASH;  // RB / RT
       if (b(3)) m |= IN.SPEC;          // Y
-      if (b(4) || b(6)) m |= IN.SWAP;  // LB / LT
     }
     if (m && this.onAny) this.onAny();
     this.pressedAcc |= m & ~this.padHeld;
@@ -63,7 +62,7 @@ export class Input {
         <button class="tp-btn tp-jump" data-bit="${IN.JUMP}"><span>跳</span></button>
         <button class="tp-btn tp-atk" data-bit="${IN.ATK}"><span>攻擊</span></button>
       </div>
-      <button class="tp-btn tp-swap" data-bit="${IN.SWAP}"><span>換武器</span></button>`;
+`;
     const stick = root.querySelector('#tpStick'), knob = root.querySelector('#tpKnob');
     let stickId = null, sx = 0, sy = 0;
     const R = 34;

@@ -237,10 +237,6 @@ function stepPlayer(sim, p) {
     if (mx) p.dir = mx;
   }
 
-  if (pressed & IN.SWAP) {
-    p.weapon = (p.weapon + 1) % WEAPONS.length;
-    sim.events.push({ e: 'swap', id: p.id, w: p.weapon, x: p.x, y: p.y });
-  }
   if (!air && (pressed & IN.SPEC) && p.meter >= METER_MAX) {
     p.meter = 0; p.state = 'special'; p.st = 0; p.inv = SPECIAL.dur + 10; p.vx = 0; p.vy = 0;
     sim.events.push({ e: 'special', id: p.id, x: p.x, y: p.y, dir: p.dir });

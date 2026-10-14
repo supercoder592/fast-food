@@ -7,7 +7,7 @@ import { FX } from './fx.js';
 import { Input } from './input.js';
 import { Net } from './net.js';
 import { initAudio, play, startBgm, toggleBgm, setMuted, isMuted, bgmEnabled } from './sfx.js';
-import { weaponSprite, miscSprite } from './sprites.js';
+import { weaponSprite, miscSprite, charSprite } from './sprites.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#game');
@@ -30,11 +30,12 @@ function buildWeaponCards() {
     const el = document.createElement('div'); el.className = 'card' + (i === S.weapon ? ' on' : '');
     const c = document.createElement('canvas'); c.width = 32; c.height = 32;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    const ws = w.id === 'drumstick' ? weaponSprite('drumstick') : miscSprite(w.item); const sc = Math.min(30 / ws.w, 30 / ws.h);
+    const ws = charSprite(w.hero.skin, 'idle0'); const sc = Math.min(30 / ws.w, 30 / ws.h);
     g.drawImage(ws.img, Math.round((32 - ws.w * sc) / 2), Math.round((32 - ws.h * sc) / 2), Math.round(ws.w * sc), Math.round(ws.h * sc));
     el.appendChild(c);
+    const hero = document.createElement('div'); hero.className = 'n'; hero.textContent = w.hero.name; el.insertBefore(hero, c);
     const n = document.createElement('div'); n.className = 'n'; n.textContent = w.name; n.style.color = w.color; el.appendChild(n);
-    const d = document.createElement('div'); d.className = 'd'; d.textContent = w.desc; el.appendChild(d);
+    const d = document.createElement('div'); d.className = 'd'; d.textContent = w.hero.blurb + ' ' + w.desc; el.appendChild(d);
     el.addEventListener('click', () => { S.weapon = i; buildWeaponCards(); play('ui'); });
     root.appendChild(el);
   });
@@ -117,7 +118,7 @@ function updateLobby(d) {
   const ul = $('#lobbyPlayers'); ul.innerHTML = '';
   for (const p of d.players) {
     const li = document.createElement('li');
-    li.innerHTML = `<span>${esc(p.name)}</span><span class="w">${WEAPONS[p.weapon] ? WEAPONS[p.weapon].name : ''}</span>` + (p.id === d.host ? '<span class="h">房主</span>' : '') + (p.id === S.localId ? '<span class="h">(你)</span>' : '');
+    li.innerHTML = `<span>${esc(p.name)}</span><span class="w">${WEAPONS[p.weapon] ? WEAPONS[p.weapon].hero.name + '·' + WEAPONS[p.weapon].name : ''}</span>` + (p.id === d.host ? '<span class="h">房主</span>' : '') + (p.id === S.localId ? '<span class="h">(你)</span>' : '');
     ul.appendChild(li);
   }
   const host = d.host === S.localId;
