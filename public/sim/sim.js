@@ -122,11 +122,8 @@ function moveDef(p) {
 
 function beginMove(sim, p, mv) {
   const w = WEAPONS[p.weapon];
-  let m = w.combo[mv];
+  const m = w.combo[mv];
   p.alt = false;
-  if (m.alt && m.proj && m.proj.type === 'pizza' && sim.projs.some(pr => pr.type === 'pizza' && pr.owner === p.id)) {
-    p.alt = true; m = m.alt;
-  }
   p.state = 'attack'; p.mv = mv; p.st = 0; p.atkHit = {}; p.buf = 0;
   if (m.fwd) p.vx = m.fwd * p.dir;
   p.vy = 0;
@@ -203,7 +200,7 @@ function stepPlayer(sim, p) {
       const m = moveDef(p);
       p.vx *= 0.84; p.vy *= 0.8;
       if (m.proj && p.st === m.proj.at) fireProj(sim, p, m.proj);
-      if (m.slam && p.st === m.slam.at) doSlam(sim, p, p.x + p.dir * 18, p.y, m.slam, p.atkHit);
+      if (m.slam && p.st === m.slam.at) doSlam(sim, p, m.slam.self ? p.x : p.x + p.dir * 18, p.y, m.slam, p.atkHit);
       if (p.st >= m.cancel && p.buf > 0 && p.mv + 1 < w.combo.length) { beginMove(sim, p, p.mv + 1); return; }
       if (p.st >= m.cancel && (pressed & IN.DASH) && p.dashCd === 0) { startDash(p); return; }
       if (p.st >= m.dur) { p.state = 'idle'; p.st = 0; }
@@ -267,18 +264,20 @@ function fireProj(sim, p, def) {
   const n = def.n || 1;
   for (let i = 0; i < n; i++) {
     const t = n === 1 ? 0 : (i / (n - 1) - 0.5) * 2; // -1..1
-    const ang = t * def.spread;
+    const ang = t * (def.spread || 0);
     const jitter = sim.rng.range(-0.05, 0.05);
+    const spd = def.speed * sim.rng.range(0.92, 1.08);
     const pr = {
       id: sim.nextId++, kind: 'proj', type: def.type, team: 'p', owner: p.id,
-      x: p.x + p.dir * 10, y: p.y, z: p.z + 12,
-      vx: p.dir * def.speed * Math.cos(ang) * sim.rng.range(0.9, 1.1),
-      vy: Math.sin(ang) * def.speed * 0.5 + jitter,
-      vz: (def.vz || 0) + Math.sin(ang * 1.3) * def.speed * 0.25 * (def.type === 'nugget' ? 1 : 0),
+      x: p.x + p.dir * 10, y: p.y, z: def.roll ? 0 : p.z + 12,
+      vx: p.dir * spd * Math.cos(ang),
+      vy: Math.sin(ang) * spd * 0.45 + jitter,
+      vz: (def.vz || 0) + (def.type === 'friesdart' ? Math.sin(ang * 1.3) * spd * 0.2 : 0),
       life: def.life, t: 0, dir: p.dir,
       dmg: def.dmg, kbx: def.kbx, kbz: def.kbz, hs: def.hs, shake: def.shake, pow: def.pow,
       pierce: !!def.pierce, rehit: def.rehit || 0, hitT: {},
-      boomerang: !!def.boomerang, returnAt: def.returnAt || 0, grav: def.type === 'nugget' ? 0.12 : 0,
+      grav: def.grav || 0, roll: !!def.roll, rollOnLand: !!def.rollOnLand, bounce: !!def.bounce, bounced: false,
+      landSlam: def.landSlam || null,
     };
     sim.projs.push(pr);
   }
@@ -448,28 +447,23 @@ function stepProj(sim, pr) {
     }
     return;
   }
-  if (pr.boomerang && pr.t >= pr.returnAt) {
-    const o = sim.players.find(p => p.id === pr.owner);
-    if (o) {
-      const dx = o.x - pr.x, dy = o.y - pr.y, dz = (o.z + 12) - pr.z;
-      const dist = Math.hypot(dx, dy) || 1;
-      const sp = 6;
-      pr.vx = dx / dist * sp; pr.vy = dy / dist * sp; pr.vz = clamp(dz * 0.2, -3, 3);
-      if (dist < 10 && Math.abs(dz) < 20) {
-        pr.dead = true; o.meter = Math.min(METER_MAX, o.meter + 8);
-        sim.events.push({ e: 'catch', id: o.id, x: o.x, y: o.y, z: o.z + 12 });
-        return;
-      }
-    } else pr.dead = true;
-  }
   pr.x += pr.vx; pr.y += pr.vy;
-  if (pr.grav) pr.vz -= pr.grav;
-  pr.z += pr.vz;
-  if (pr.z < 0) { pr.z = 0; if (pr.type === 'nugget' || pr.type === 'sushi') { pr.life = 0; sim.events.push({ e: 'plop', x: pr.x, y: pr.y, type: pr.type }); } else pr.vz = 0; }
-  if (pr.type === 'pizza' && !pr.boomerang) { /* air-thrown: slides along ground */ }
-  if (pr.x < sim.camX - 40 || pr.x > sim.camX + W + 40) {
-    if (pr.boomerang) { pr.vx = -pr.vx; pr.t = Math.max(pr.t, pr.returnAt); } else pr.life = 0;
+  if (pr.roll) {
+    pr.z = 0; pr.vx *= 0.985;
+    if (Math.abs(pr.vx) < 1.2) pr.life = Math.min(pr.life, 6);
+  } else {
+    if (pr.grav) pr.vz -= pr.grav;
+    pr.z += pr.vz;
+    if (pr.z <= 0) {
+      pr.z = 0;
+      const owner = sim.players.find(p => p.id === pr.owner) || { id: pr.owner, kind: 'player' };
+      if (pr.landSlam) { pr.dead = true; doSlam(sim, owner, pr.x, pr.y, { ...pr.landSlam, pow: pr.pow }, {}); sim.events.push({ e: 'splatfood', x: pr.x, y: pr.y, type: pr.type }); }
+      else if (pr.rollOnLand) { pr.roll = true; pr.vz = 0; pr.vx = pr.dir * Math.max(3.5, Math.abs(pr.vx)); sim.events.push({ e: 'plop', x: pr.x, y: pr.y, type: pr.type }); }
+      else if (pr.bounce && !pr.bounced) { pr.bounced = true; pr.vz = 2.6; pr.vx *= 0.7; sim.events.push({ e: 'plop', x: pr.x, y: pr.y, type: pr.type }); }
+      else { pr.life = 0; sim.events.push({ e: 'splatfood', x: pr.x, y: pr.y, type: pr.type }); }
+    }
   }
+  if (pr.x < sim.camX - 40 || pr.x > sim.camX + W + 40) pr.life = 0;
   pr.y = clamp(pr.y, FLOOR_TOP - 4, FLOOR_BOT + 4);
 }
 
@@ -598,13 +592,14 @@ function resolveHits(sim) {
       const owner = sim.players.find(p => p.id === pr.owner) || { id: pr.owner, kind: 'player', x: pr.x, y: pr.y, z: 0, hitstop: 0, meter: 0, hits: 0, comboT: 0, score: 0 };
       for (const e of sim.enemies) {
         if (!targetable(e)) continue;
+        if (pr.landSlam && pr.vz > 0) continue; // still rising
         const last = pr.hitT[e.id];
         if (last !== undefined && (!pr.rehit || pr.t - last < pr.rehit)) continue;
         if (Math.abs(pr.x - e.x) > 7 + e.w / 2 || Math.abs(pr.y - e.y) > 11) continue;
         if (pr.z < e.z - 6 || pr.z > e.z + e.h + 4) continue;
         pr.hitT[e.id] = pr.t;
-        hitEnemy(sim, owner, e, { dmg: pr.dmg, kbx: pr.kbx, kbz: pr.kbz, hs: pr.hs, shake: pr.shake, pow: pr.pow, kind: pr.type === 'nugget' ? 'blunt' : 'slash' }, sign(pr.vx || pr.dir), pr);
-        if (!pr.pierce) { pr.dead = true; break; }
+        hitEnemy(sim, owner, e, { dmg: pr.dmg, kbx: pr.kbx, kbz: pr.kbz, hs: pr.hs, shake: pr.shake, pow: pr.pow, kind: pr.type === 'friesdart' ? 'pierce' : 'blunt' }, sign(pr.vx || pr.dir), pr);
+        if (!pr.pierce) { pr.dead = true; sim.events.push({ e: 'splatfood', x: pr.x, y: pr.y, type: pr.type, z: pr.z }); break; }
       }
     } else {
       for (const p of sim.players) {
@@ -727,7 +722,7 @@ function hitPlayer(sim, atk, p, h, dir) {
 // AOE ground slam. `exclude` is the attacker's atkHit map (to avoid double hits with the direct hitbox).
 function doSlam(sim, atk, x, y, slam, exclude) {
   const r = slam.r;
-  sim.events.push({ e: 'slam', x, y, r, pow: slam.pow || 3, meteor: !!slam.meteor, by: atk.kind });
+  sim.events.push({ e: 'slam', x, y, r, pow: slam.pow || 3, meteor: !!slam.meteor, by: atk.kind, fxKind: slam.fxKind || '' });
   if (atk.kind === 'player' || atk.id === 0) {
     for (const e of sim.enemies) {
       if (!targetable(e)) continue;
@@ -823,7 +818,7 @@ function stepCamera(sim) {
 // ---------------------------------------------------------------- snapshot (network)
 const P_FIELDS = ['id', 'name', 'slot', 'x', 'y', 'z', 'dir', 'state', 'st', 'hp', 'maxHp', 'weapon', 'mv', 'alt', 'hitstop', 'flash', 'meter', 'inv', 'lives', 'hits', 'comboT', 'dashCd', 'score', 'vz'];
 const E_FIELDS = ['id', 'type', 'x', 'y', 'z', 'dir', 'state', 'st', 'hp', 'maxHp', 'flash', 'hitstop', 'ak', 'inv', 'vz'];
-const J_FIELDS = ['id', 'type', 'team', 'x', 'y', 'z', 'vx', 'vy', 'vz', 't', 'dir', 'boomerang'];
+const J_FIELDS = ['id', 'type', 'team', 'x', 'y', 'z', 'vx', 'vy', 'vz', 't', 'dir', 'roll'];
 const K_FIELDS = ['id', 'type', 'x', 'y', 'z', 'life'];
 const pick = (o, f) => { const r = {}; for (const k of f) r[k] = o[k]; return r; };
 

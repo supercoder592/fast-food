@@ -59,7 +59,7 @@ export class Input {
       <div class="tp-stick" id="tpStick"><div class="tp-base"></div><div class="tp-knob" id="tpKnob"></div></div>
       <div class="tp-btns">
         <button class="tp-btn tp-spec" data-bit="${IN.SPEC}"><span>必殺</span><small>漢堡隕石</small></button>
-        <button class="tp-btn tp-dash" data-bit="${IN.DASH}"><span>衝刺</span><small>可樂噴射</small></button>
+        <button class="tp-btn tp-dash" data-bit="${IN.DASH}"><span>衝刺</span><small>奶昔滑步</small></button>
         <button class="tp-btn tp-jump" data-bit="${IN.JUMP}"><span>跳</span></button>
         <button class="tp-btn tp-atk" data-bit="${IN.ATK}"><span>攻擊</span></button>
       </div>

@@ -85,9 +85,9 @@ export class FX {
       }
       case 'slam': {
         const r = ev.r;
-        this.crater(ev.x, ev.y, r);
-        this.debris(ev.x, ev.y, Math.min(44, (r * 0.5) | 0), ev.meteor ? 1.5 : 1.1);
-        this.dust(ev.x, ev.y, 24, r * 0.6, '#b8a888');
+        if (ev.fxKind === 'cola') { this.dust(ev.x, ev.y, 30, r * 0.6, '#6b3a1a'); this.bits(ev.x, ev.y, 10, ['#fff6e5', '#6b3a1a', '#e23c2c'], 40, 1.6); this.text(ev.x, ev.y, 36, '曼陀珠爆炸!', '#fff6e5', 1, 'cjk', 60); }
+        else if (ev.fxKind === 'fries') { this.bits(ev.x, ev.y, 10, ['#ffd23f', '#e8a92a'], 50, 1.3); this.dust(ev.x, ev.y, 10, r * 0.5, '#e8c060'); }
+        else { this.crater(ev.x, ev.y, r); this.debris(ev.x, ev.y, Math.min(44, (r * 0.5) | 0), ev.meteor ? 1.5 : 1.1); this.dust(ev.x, ev.y, 24, r * 0.6, '#b8a888'); }
         this.ring(ev.x, ev.y, r * 1.1, 22, '#fff6e5', 2);
         this.ring(ev.x, ev.y, r * 0.7, 14, '#ffd23f', 1);
         this.shakeAdd(ev.meteor ? 22 : 14, 0, 4); this.flashAdd(ev.meteor ? 0.6 : 0.35, '#fff6e5'); this.zoomPunch(ev.meteor ? 0.09 : 0.05); this.freezeAdd(ev.meteor ? 9 : 6);
@@ -104,8 +104,16 @@ export class FX {
         break;
       }
       case 'shot': {
-        if (ev.type === 'nugget') { this.sparks(ev.x, ev.y, ev.z, ev.n > 5 ? 14 : 8, 'blunt', ev.dir, 4); this.shakeAdd(ev.n > 5 ? 7 : 3, -ev.dir * 2, 0); play(ev.n > 5 ? 'shotBig' : 'shot'); this.freezeAdd(ev.n > 5 ? 3 : 1); }
-        else if (ev.type === 'sushi') play('throw');
+        if (ev.type === 'friesdart') { this.sparks(ev.x, ev.y, ev.z, 3, 'pierce', ev.dir, 2); play('thrust'); }
+        else if (ev.type === 'bigburger' || ev.type === 'bucket' || ev.type === 'pizzaspin') { this.dust(ev.x, ev.y, 4, 5); play('swingHeavy'); }
+        else if (ev.type === 'pizza') { this.dust(ev.x, ev.y, 3, 4); play('swing'); }
+        else play('throw');
+        break;
+      }
+      case 'splatfood': {
+        const cols = ev.type === 'burger' || ev.type === 'bigburger' ? ['#e8a84a', '#6cc04a', '#e8503a', '#fff6e5', '#7a3e12'] : ev.type === 'bucket' || ev.type === 'friesdart' ? ['#ffd23f', '#e8a92a', '#e23c2c'] : ev.type === 'pizza' || ev.type === 'pizzaspin' ? ['#ffd23f', '#c8302a', '#d9892c'] : ['#fff6e5', '#ff8c5a'];
+        this.bits(ev.x, ev.y, ev.z || 2, cols, ev.type === 'bigburger' ? 26 : ev.type === 'bucket' ? 30 : 8, ev.type === 'bigburger' ? 1.4 : 1);
+        play('splat');
         break;
       }
       case 'launch': this.dust(ev.x, ev.y, 4, 6); break;
@@ -127,7 +135,7 @@ export class FX {
       case 'unbury': this.dust(ev.x, ev.y, 10, 8, '#8a6a4a'); break;
       case 'jump': { this.dust(ev.x, ev.y, 3, 4); play('jump'); break; }
       case 'land': { this.dust(ev.x, ev.y, 4, 5); play('land'); break; }
-      case 'dash': { for (let i = 0; i < 10; i++) this.part({ x: ev.x - ev.dir * rnd(0, 8), y: ev.y + rnd(-3, 3), z: ev.z + rnd(4, 16), vx: -ev.dir * rnd(1, 3), vz: rnd(-0.5, 1), life: rnd(10, 22) | 0, size: Math.random() < 0.4 ? 2 : 1, kind: 'fizz', color: pickc(['#6b3a1a', '#fff6e5', '#c9842c']) }); play('dash'); break; }
+      case 'dash': { for (let i = 0; i < 10; i++) this.part({ x: ev.x - ev.dir * rnd(0, 8), y: ev.y + rnd(-3, 3), z: ev.z + rnd(4, 16), vx: -ev.dir * rnd(1, 3), vz: rnd(-0.5, 1), life: rnd(10, 22) | 0, size: Math.random() < 0.4 ? 2 : 1, kind: 'fizz', color: pickc(['#ffb6c8', '#fff6e5', '#f08aa8']) }); play('dash'); break; }
       case 'phit': { this.sparks(ev.x, ev.y, ev.z, 10, 'blunt', ev.dir, 3); this.shakeAdd(Math.min(10, (ev.shake || 3) + 2), ev.dir * 3, 1); this.freezeAdd(2); this.text(ev.x, ev.y, ev.z + 10, '-' + ev.dmg, '#ff5a3a', 1); if (this.localIds.has(ev.id)) this.flashAdd(0.25, '#ff2a2a'); play('hurt'); break; }
       case 'pdead': { this.flashAdd(0.5, '#ff2a2a'); this.shakeAdd(10); this.freezeAdd(8); play('ko'); break; }
       case 'respawn': { this.dust(ev.x, ev.y, 6, 8); play('respawn'); break; }

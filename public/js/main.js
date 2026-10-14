@@ -7,7 +7,7 @@ import { FX } from './fx.js';
 import { Input } from './input.js';
 import { Net } from './net.js';
 import { initAudio, play, startBgm, toggleBgm, setMuted, isMuted, bgmEnabled } from './sfx.js';
-import { weaponSprite } from './sprites.js';
+import { weaponSprite, miscSprite } from './sprites.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#game');
@@ -30,7 +30,7 @@ function buildWeaponCards() {
     const el = document.createElement('div'); el.className = 'card' + (i === S.weapon ? ' on' : '');
     const c = document.createElement('canvas'); c.width = 32; c.height = 32;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    const ws = weaponSprite(w.id); const sc = Math.min(30 / ws.w, 30 / ws.h);
+    const ws = w.id === 'drumstick' ? weaponSprite('drumstick') : miscSprite(w.item); const sc = Math.min(30 / ws.w, 30 / ws.h);
     g.drawImage(ws.img, Math.round((32 - ws.w * sc) / 2), Math.round((32 - ws.h * sc) / 2), Math.round(ws.w * sc), Math.round(ws.h * sc));
     el.appendChild(c);
     const n = document.createElement('div'); n.className = 'n'; n.textContent = w.name; n.style.color = w.color; el.appendChild(n);
