@@ -1,6 +1,6 @@
 // Pure deterministic game simulation. No DOM, no rendering. Runs in the browser (offline mode)
 // and in Node (authoritative server for online co-op).
-import { W, FLOOR_TOP, FLOOR_BOT, GRAVITY, STAGE_LEN, IN, MAX_PLAYERS, PLAYER_HP, START_LIVES, METER_MAX, PHASE } from './constants.js';
+import { W, FLOOR_TOP, FLOOR_BOT, GRAVITY, STAGE_LEN, IN, MAX_PLAYERS, PLAYER_HP, START_LIVES, METER_MAX, PHASE, VS_ROUND_TICKS, VS_WINS } from './constants.js';
 import { WEAPONS, DASH, SPECIAL, JUMP_VZ } from './weapons.js';
 import { ENEMIES, STAGE } from './enemies.js';
 import { makeRng } from './rng.js';
@@ -8,8 +8,9 @@ import { makeRng } from './rng.js';
 const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
 const sign = (v) => v < 0 ? -1 : 1;
 
-export function createSim(seed = 1) {
+export function createSim(seed = 1, mode = 'coop') {
   return {
+    mode, round: 0, wins: {}, roundT: 0, rs: 'fight', rsT: 0, winner: 0,
     seed, tick: 0, phase: PHASE.LOBBY, phaseT: 0, nextId: 1,
     players: [], enemies: [], projs: [], pickups: [],
     camX: 0, camLock: -1, wave: -1, waveActive: false, loop: 0, score: 0,
@@ -43,9 +44,43 @@ export function removePlayer(sim, id) {
 
 export function startGame(sim) {
   sim.phase = PHASE.PLAY; sim.phaseT = 0; sim.loop = 0; sim.score = 0;
+  if (sim.mode === 'vs') { sim.wins = {}; sim.round = 0; sim.winner = 0; startRound(sim); sim.events.push({ e: 'start' }); return; }
   resetStage(sim);
   for (const p of sim.players) { p.lives = START_LIVES; p.score = 0; p.hp = p.maxHp; p.meter = 0; }
   sim.events.push({ e: 'start' });
+}
+
+function startRound(sim) {
+  sim.round++; sim.enemies = []; sim.projs = []; sim.pickups = [];
+  sim.camX = 0; sim.camLock = 0; sim.wave = -1; sim.waveActive = false;
+  sim.roundT = VS_ROUND_TICKS; sim.rs = 'intro'; sim.rsT = 0;
+  sim.players.forEach((p, i) => {
+    p.x = i === 0 ? 90 : W - 90; p.y = FLOOR_TOP + 32; p.z = 0; p.vx = p.vy = p.vz = 0; p.dir = i === 0 ? 1 : -1;
+    p.hp = p.maxHp; p.meter = Math.min(p.meter, 50); p.state = 'idle'; p.st = 0; p.inv = 0; p.hitstop = 0; p.hits = 0; p.comboT = 0; p.lives = 0;
+  });
+  sim.events.push({ e: 'round', n: sim.round });
+}
+
+function stepVs(sim) {
+  sim.rsT++;
+  if (sim.rs === 'intro') { if (sim.rsT >= 110) { sim.rs = 'fight'; sim.rsT = 0; sim.events.push({ e: 'fight' }); } return; }
+  if (sim.rs === 'fight') {
+    sim.roundT--;
+    const alive = sim.players.filter(p => p.state !== 'dead');
+    let winner = null;
+    if (sim.players.length >= 2 && alive.length <= 1) winner = alive[0] || null;
+    else if (sim.roundT <= 0) { winner = sim.players.slice().sort((a, b) => b.hp / b.maxHp - a.hp / a.maxHp)[0]; if (sim.players.length >= 2 && sim.players[0].hp / sim.players[0].maxHp === sim.players[1].hp / sim.players[1].maxHp) winner = null; }
+    else return;
+    sim.rs = 'over'; sim.rsT = 0; sim.slow = 50;
+    if (winner) { sim.wins[winner.id] = (sim.wins[winner.id] || 0) + 1; sim.events.push({ e: 'roundwin', id: winner.id, name: winner.name, wins: sim.wins[winner.id] }); }
+    else sim.events.push({ e: 'draw' });
+    return;
+  }
+  if (sim.rs === 'over' && sim.rsT >= 170) {
+    const champ = sim.players.find(p => (sim.wins[p.id] || 0) >= VS_WINS);
+    if (champ) { sim.phase = PHASE.OVER; sim.phaseT = 0; sim.winner = champ.id; sim.events.push({ e: 'matchwin', id: champ.id, name: champ.name }); }
+    else startRound(sim);
+  }
 }
 
 function resetStage(sim) {
@@ -84,7 +119,8 @@ export function step(sim, inputs = {}) {
     }
   }
 
-  for (const p of sim.players) stepPlayer(sim, p);
+  const vsLocked = sim.mode === 'vs' && sim.phase === PHASE.PLAY && sim.rs !== 'fight';
+  for (const p of sim.players) { if (vsLocked && p.state !== 'dead' && p.state !== 'launched' && p.state !== 'hurt' && p.state !== 'down') { p.pressed = 0; p.held = 0; } stepPlayer(sim, p); }
   for (const e of sim.enemies) stepEnemy(sim, e);
   for (const pr of sim.projs) stepProj(sim, pr);
 
@@ -100,10 +136,11 @@ export function step(sim, inputs = {}) {
   sim.projs = sim.projs.filter(pr => pr.life > 0 && !pr.dead);
   sim.pickups = sim.pickups.filter(k => !k.dead);
 
-  if (sim.phase === PHASE.PLAY) stepWaves(sim);
+  if (sim.phase === PHASE.PLAY && sim.mode === 'vs') stepVs(sim);
+  if (sim.phase === PHASE.PLAY && sim.mode !== 'vs') stepWaves(sim);
   stepCamera(sim);
 
-  if (sim.phase === PHASE.PLAY) {
+  if (sim.phase === PHASE.PLAY && sim.mode !== 'vs') {
     const alive = sim.players.some(p => p.state !== 'dead' || p.lives > 0);
     if (sim.players.length && !alive) { sim.phase = PHASE.OVER; sim.phaseT = 0; ev.push({ e: 'gameover' }); }
   }
@@ -167,12 +204,12 @@ function stepPlayer(sim, p) {
     }
     case 'hurt': {
       p.vx *= 0.86;
-      if (p.st >= p.hurtDur) { p.state = 'idle'; p.st = 0; p.inv = Math.max(p.inv, 36); }
+      if (p.st >= p.hurtDur) { p.state = 'idle'; p.st = 0; p.inv = Math.max(p.inv, sim.mode === 'vs' ? 4 : 36); }
       return;
     }
     case 'launched': return; // physics
     case 'down': {
-      if (p.st >= 34) { p.state = 'getup'; p.st = 0; p.inv = 50; }
+      if (p.st >= 34) { p.state = 'getup'; p.st = 0; p.inv = sim.mode === 'vs' ? 30 : 50; }
       return;
     }
     case 'getup': { if (p.st >= 16) { p.state = 'idle'; p.st = 0; } return; }
@@ -552,6 +589,18 @@ function resolveHits(sim) {
     for (let hi = 0; hi < hits.length; hi++) {
       const h = hits[hi];
       if (p.st < h.from || p.st > h.to) continue;
+      if (sim.mode === 'vs') {
+        for (const q of sim.players) {
+          if (q === p || !vsTargetable(q)) continue;
+          const key = hi + ':' + q.id;
+          if (p.atkHit[key]) continue;
+          const hitFront = boxHit(p, h, q, false);
+          const hitBack = h.both && boxHit(p, h, q, true);
+          if (!hitFront && !hitBack) continue;
+          p.atkHit[key] = 1;
+          hitPlayerVs(sim, p, q, h, hitFront ? p.dir : -p.dir);
+        }
+      }
       for (const e of sim.enemies) {
         if (!targetable(e)) continue;
         const key = hi + ':' + e.id;
@@ -584,7 +633,20 @@ function resolveHits(sim) {
   // projectiles
   for (const pr of sim.projs) {
     if (pr.dead || pr.type === 'meteor') continue;
-    if (pr.team === 'p') {
+    if (pr.team === 'p' && sim.mode === 'vs') {
+      const owner = sim.players.find(p => p.id === pr.owner);
+      for (const q of sim.players) {
+        if (!owner || q === owner || !vsTargetable(q)) continue;
+        if (pr.landSlam && pr.vz > 0) continue;
+        const last = pr.hitT[q.id];
+        if (last !== undefined && (!pr.rehit || pr.t - last < pr.rehit)) continue;
+        if (Math.abs(pr.x - q.x) > 7 + q.w / 2 || Math.abs(pr.y - q.y) > 11) continue;
+        if (pr.z < q.z - 6 || pr.z > q.z + q.h + 4) continue;
+        pr.hitT[q.id] = pr.t;
+        hitPlayerVs(sim, owner, q, { dmg: pr.dmg, kbx: pr.kbx, kbz: pr.kbz, hs: pr.hs, shake: pr.shake, pow: pr.pow, kind: pr.type === 'friesdart' ? 'pierce' : 'blunt' }, sign(pr.vx || pr.dir), pr);
+        if (!pr.pierce) { pr.dead = true; sim.events.push({ e: 'splatfood', x: pr.x, y: pr.y, type: pr.type, z: pr.z }); break; }
+      }
+    } else if (pr.team === 'p') {
       const owner = sim.players.find(p => p.id === pr.owner) || { id: pr.owner, kind: 'player', x: pr.x, y: pr.y, z: 0, hitstop: 0, meter: 0, hits: 0, comboT: 0, score: 0 };
       for (const e of sim.enemies) {
         if (!targetable(e)) continue;
@@ -695,6 +757,27 @@ function finishKill(sim, e) {
   sim.events.push({ e: 'splat', x: e.x, y: e.y, z: e.z, type: e.type, boss: !!ENEMIES[e.type].boss });
 }
 
+function vsTargetable(q) { return q.state !== 'dead' && q.state !== 'special' && q.inv <= 0 && q.state !== 'getup'; }
+
+function hitPlayerVs(sim, atk, p, h, dir, proj) {
+  const vsDmg = Math.max(1, Math.round(h.dmg * 0.6));
+  const airHit = p.z > 0; const crit = airHit && h.pow >= 2;
+  const dmg = crit ? Math.round(vsDmg * 1.25) : vsDmg;
+  p.hp -= dmg; p.flash = 4 + h.pow * 2; p.hitstop = Math.max(p.hitstop, h.hs); p.noGrav = false;
+  if (!proj) atk.hitstop = Math.max(atk.hitstop, Math.round(h.hs * 0.85));
+  p.hits = 0; p.comboT = 0;
+  atk.meter = Math.min(METER_MAX, atk.meter + dmg * 0.6 + 1); atk.hits++; atk.comboT = 100;
+  if (atk.hits > 0 && atk.hits % 10 === 0) sim.events.push({ e: 'combo', id: atk.id, n: atk.hits, x: p.x, y: p.y, z: p.z + 26 });
+  sim.events.push({ e: 'hit', x: proj ? proj.x : p.x - dir * 4, y: p.y, z: p.z + 14, dir, pow: h.pow, kind: h.kind, dmg, crit, vid: p.id, shake: h.shake, air: airHit });
+  sim.events.push({ e: 'phit', id: p.id, x: p.x, y: p.y, z: p.z + 14, dir, pow: h.pow, dmg, shake: 0, quiet: true });
+  const kbx = h.kbx * dir, kbz = h.kbz;
+  if (p.hp <= 0) { p.hp = 0; p.state = 'dead'; p.st = 0; p.deadT = 0; p.vx = dir * 4; p.vz = 7; p.z = Math.max(p.z, 0.01); sim.events.push({ e: 'ko', x: p.x, y: p.y, z: p.z + 10, type: 'player', boss: true, dir }); sim.events.push({ e: 'pdead', id: p.id, x: p.x, y: p.y }); return; }
+  if (p.state === 'launched' || p.z > 0) { p.juggle = (p.juggle || 0) + 1; const lift = Math.max(2.8, kbz || 3.2) * Math.max(0.55, 1 - p.juggle * 0.08); p.vz = Math.max(p.vz * 0.3, lift); p.vx = kbx * 0.8; p.bounced = false; p.state = 'launched'; return; }
+  if (kbz >= 2.2) { p.state = 'launched'; p.st = 0; p.vz = kbz; p.vx = kbx; p.z = 0.01; p.bounced = false; p.juggle = 1; sim.events.push({ e: 'launch', x: p.x, y: p.y, pow: h.pow }); return; }
+  if (p.state === 'down') { p.state = 'launched'; p.st = 0; p.vz = 4.2; p.vx = kbx * 0.6; p.z = 0.01; p.bounced = false; p.juggle = 1; return; }
+  p.state = 'hurt'; p.st = 0; p.hurtDur = 11 + h.pow * 5; p.vx = kbx; p.vy = 0; p.vsHurt = true;
+}
+
 function hitPlayer(sim, atk, p, h, dir) {
   if (p.inv > 0 || p.state === 'dead') return;
   p.hp -= h.dmg;
@@ -719,6 +802,15 @@ function hitPlayer(sim, atk, p, h, dir) {
 function doSlam(sim, atk, x, y, slam, exclude) {
   const r = slam.r;
   sim.events.push({ e: 'slam', x, y, r, pow: slam.pow || 3, meteor: !!slam.meteor, by: atk.kind, fxKind: slam.fxKind || '' });
+  if (sim.mode === 'vs' && atk.kind === 'player') {
+    for (const q of sim.players) {
+      if (q.id === atk.id || !vsTargetable(q)) continue;
+      const dx = (q.x - x) / r, dy = (q.y - y) / (r * 0.45);
+      if (dx * dx + dy * dy > 1) continue;
+      if (exclude && exclude['0:' + q.id]) continue;
+      hitPlayerVs(sim, atk, q, { dmg: slam.dmg, kbx: slam.kbx, kbz: slam.kbz, hs: slam.hs, shake: slam.shake, pow: slam.pow || 3, kind: 'blunt' }, q.x < x ? -1 : 1);
+    }
+  }
   if (atk.kind === 'player' || atk.id === 0) {
     for (const e of sim.enemies) {
       if (!targetable(e)) continue;
@@ -820,6 +912,7 @@ const pick = (o, f) => { const r = {}; for (const k of f) r[k] = o[k]; return r;
 
 export function snapshot(sim) {
   return {
+    mode: sim.mode, round: sim.round, wins: sim.wins, roundT: sim.roundT, rs: sim.rs, rsT: sim.rsT, winner: sim.winner,
     tk: sim.tick, ph: sim.phase, pt: sim.phaseT, cam: Math.round(sim.camX * 10) / 10, wave: sim.wave, wa: sim.waveActive, loop: sim.loop, score: sim.score,
     P: sim.players.map(p => pick(p, P_FIELDS)),
     E: sim.enemies.map(e => pick(e, E_FIELDS)),

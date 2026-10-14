@@ -136,7 +136,7 @@ export class FX {
       case 'jump': { this.dust(ev.x, ev.y, 3, 4); play('jump'); break; }
       case 'land': { this.dust(ev.x, ev.y, 4, 5); play('land'); break; }
       case 'dash': { for (let i = 0; i < 10; i++) this.part({ x: ev.x - ev.dir * rnd(0, 8), y: ev.y + rnd(-3, 3), z: ev.z + rnd(4, 16), vx: -ev.dir * rnd(1, 3), vz: rnd(-0.5, 1), life: rnd(10, 22) | 0, size: Math.random() < 0.4 ? 2 : 1, kind: 'fizz', color: pickc(['#ffb6c8', '#fff6e5', '#f08aa8']) }); play('dash'); break; }
-      case 'phit': { this.sparks(ev.x, ev.y, ev.z, 10, 'blunt', ev.dir, 3); this.shakeAdd(Math.min(10, (ev.shake || 3) + 2), ev.dir * 3, 1); this.freezeAdd(2); this.text(ev.x, ev.y, ev.z + 10, '-' + ev.dmg, '#ff5a3a', 1); if (this.localIds.has(ev.id)) this.flashAdd(0.25, '#ff2a2a'); play('hurt'); break; }
+      case 'phit': { if (ev.quiet) { if (this.localIds.has(ev.id)) this.flashAdd(0.12, '#ff2a2a'); break; } this.sparks(ev.x, ev.y, ev.z, 10, 'blunt', ev.dir, 3); this.shakeAdd(Math.min(10, (ev.shake || 3) + 2), ev.dir * 3, 1); this.freezeAdd(2); this.text(ev.x, ev.y, ev.z + 10, '-' + ev.dmg, '#ff5a3a', 1); if (this.localIds.has(ev.id)) this.flashAdd(0.25, '#ff2a2a'); play('hurt'); break; }
       case 'pdead': { this.flashAdd(0.5, '#ff2a2a'); this.shakeAdd(10); this.freezeAdd(8); play('ko'); break; }
       case 'respawn': { this.dust(ev.x, ev.y, 6, 8); play('respawn'); break; }
       case 'special': { this.flashAdd(0.3, '#ffd23f'); this.zoomPunch(0.04); this.text(ev.x, ev.y, 34, '漢堡隕石!', '#ffd23f', 1, 'cjk', 50); play('special'); break; }
@@ -154,8 +154,14 @@ export class FX {
       case 'clear': { this.setBanner('STAGE CLEAR', '速食主義 萬歲！', 300, '#6cf05a'); this.goArrow = 0; play('clear'); break; }
       case 'stage': { this.setBanner('LOOP ' + (ev.loop + 1), '敵人變強了', 120, '#ff9a3a'); play('wave'); break; }
       case 'gameover': { this.setBanner('GAME OVER', '按攻擊鍵 再來一次', 100000, '#ff5a3a'); play('gameover'); break; }
-      case 'start': { this.banner = null; this.setBanner('FIGHT!', '', 60, '#ffd23f'); this.decals = []; play('go'); break; }
+      case 'start': { this.decals = []; if (!(view && view.mode === 'vs')) { this.banner = null; this.setBanner('FIGHT!', '', 60, '#ffd23f'); play('go'); } break; }
+      case 'start_coop': { this.banner = null; this.setBanner('FIGHT!', '', 60, '#ffd23f'); this.decals = []; play('go'); break; }
       case 'combo': { this.text(ev.x, ev.y, ev.z + 10, ev.n + ' HITS!', '#ffd23f', 2, 'num', 50); play('combo'); break; }
+      case 'round': { this.decals = []; this.setBanner('ROUND ' + ev.n, '', 100, '#ffd23f'); play('wave'); break; }
+      case 'fight': { this.setBanner('FIGHT!', '', 50, '#ff5a3a'); play('go'); break; }
+      case 'roundwin': { this.setBanner('K.O.', ev.name + ' 贏得這回合', 160, '#ff5a3a'); this.freezeAdd(12); this.flashAdd(0.5); this.shakeAdd(14); play('bossko'); break; }
+      case 'draw': { this.setBanner('DRAW', '平手', 160, '#b8adc6'); play('gameover'); break; }
+      case 'matchwin': { this.setBanner(ev.name + ' WINS', '按攻擊鍵 再戰一場', 100000, '#ffd23f'); play('clear'); break; }
       case 'ewindup': play(ev.big ? 'ewindupBig' : 'ewindup'); break;
       case 'echarge': this.dust(ev.x, ev.y, 6, 8); break;
       case 'blink': { this.dust(ev.x, ev.y, 8, 6, '#6b4a6a'); play('blink'); break; }

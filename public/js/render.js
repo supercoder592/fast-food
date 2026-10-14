@@ -355,7 +355,45 @@ export class Renderer {
   }
 
   // ---------------------------------------------------------------- HUD
+  drawHudVs(g, view, fx, opts) {
+    const ps = view.P;
+    const bw = 118, y0 = 8;
+    ps.slice(0, 2).forEach((p, i) => {
+      const right = i === 1; const x0 = right ? W - 10 - bw : 10;
+      const w = WEAPONS[p.weapon];
+      g.fillStyle = 'rgba(18,12,36,0.7)'; g.fillRect(x0 - 3, y0 - 5, bw + 6, 30);
+      pixelText(g, (i + 1) + 'P ' + p.name, right ? x0 + bw : x0, y0 - 3, opts.localId === p.id ? '#ffd23f' : '#fff6e5', 1, right ? 'right' : 'left');
+      const f = Math.max(0, p.hp / p.maxHp);
+      g.fillStyle = '#1b1026'; g.fillRect(x0 - 1, y0 + 5, bw + 2, 9);
+      g.fillStyle = '#4a1a1a'; g.fillRect(x0, y0 + 6, bw, 7);
+      const fw = Math.round(bw * f);
+      g.fillStyle = f > 0.5 ? '#6cf05a' : f > 0.25 ? '#ffd23f' : ((this.frame >> 3) & 1 ? '#ff5a3a' : '#ff9a3a');
+      g.fillRect(right ? x0 + bw - fw : x0, y0 + 6, fw, 7);
+      g.fillStyle = 'rgba(0,0,0,0.25)'; for (let sx = 10; sx < bw; sx += 10) g.fillRect(x0 + sx, y0 + 6, 1, 7);
+      const mf = p.meter / METER_MAX;
+      g.fillStyle = '#1b1026'; g.fillRect(x0 - 1, y0 + 15, bw + 2, 4); g.fillStyle = '#3a3020'; g.fillRect(x0, y0 + 16, bw, 2);
+      g.fillStyle = mf >= 1 ? ((this.frame >> 2) & 1 ? '#ffffff' : '#ffd23f') : '#e8a020'; const mw = Math.round(bw * mf); g.fillRect(right ? x0 + bw - mw : x0, y0 + 16, mw, 2);
+      g.font = CJK_S; g.textAlign = right ? 'right' : 'left'; g.fillStyle = '#1b1026'; g.fillText(w.hero.name + '·' + w.name, (right ? x0 + bw : x0) + 1, y0 + 25); g.fillStyle = w.color; g.fillText(w.hero.name + '·' + w.name, right ? x0 + bw : x0, y0 + 24);
+      const wins = (view.wins && view.wins[p.id]) || 0;
+      for (let k = 0; k < 2; k++) { const dx = right ? x0 + bw - 8 - k * 9 : x0 + k * 9; g.fillStyle = '#1b1026'; g.fillRect(dx - 1, y0 + 27, 8, 6); g.fillStyle = k < wins ? '#ffd23f' : '#3a3050'; g.fillRect(dx, y0 + 28, 6, 4); }
+      if (p.hits >= 2 && p.comboT > 0) pixelText(g, p.hits + ' HITS', right ? W - 14 : 14, 44, p.hits >= 8 ? '#ffd23f' : '#fff6e5', 2, right ? 'right' : 'left');
+    });
+    const secs = Math.max(0, Math.ceil((view.roundT || 0) / 60));
+    g.fillStyle = 'rgba(18,12,36,0.7)'; g.fillRect(W / 2 - 18, 4, 36, 22);
+    pixelText(g, String(secs).padStart(2, '0'), W / 2, 8, secs <= 10 ? '#ff5a3a' : '#fff6e5', 3, 'center');
+    pixelText(g, 'ROUND ' + (view.round || 1), W / 2, 28, '#b8adc6', 1, 'center');
+    if (fx.banner) {
+      const b = fx.banner; const age = b.maxLife - b.life; const slide = age < 10 ? (10 - age) * 8 : 0; const alpha = b.life < 15 ? b.life / 15 : 1;
+      g.globalAlpha = alpha * 0.75; g.fillStyle = '#1b1026'; g.fillRect(0, H / 2 - 22, W, 36); g.globalAlpha = alpha;
+      pixelText(g, b.str, W / 2 - slide, H / 2 - 16, b.color, 3, 'center');
+      if (b.sub) { g.font = CJK; g.textAlign = 'center'; g.fillStyle = '#1b1026'; g.fillText(b.sub, W / 2 + 1, H / 2 + 10); g.fillStyle = '#fff6e5'; g.fillText(b.sub, W / 2, H / 2 + 9); }
+      g.globalAlpha = 1;
+    }
+    if (view.ph === 'lobby') pixelText(g, 'WARM UP', W / 2, 40, '#b8adc6', 1, 'center');
+  }
+
   drawHud(g, view, fx, opts) {
+    if (view.mode === 'vs') return this.drawHudVs(g, view, fx, opts);
     const ps = view.P;
     const corners = [[4, 4], [W - 4, 4], [4, 40], [W - 4, 40]];
     ps.forEach((p, i) => {

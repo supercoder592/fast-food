@@ -21,3 +21,6 @@ export const START_LIVES = 3;
 export const METER_MAX = 100;
 
 export const PHASE = { LOBBY: 'lobby', PLAY: 'play', CLEAR: 'clear', OVER: 'over' };
+
+export const VS_ROUND_TICKS = 99 * 60;
+export const VS_WINS = 2;

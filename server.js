@@ -30,10 +30,10 @@ const rooms = new Map();
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const makeCode = () => { let c = ''; for (let i = 0; i < 4; i++) c += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]; return rooms.has(c) ? makeCode() : c; };
 
-function getRoom(code) {
+function getRoom(code, mode) {
   let r = rooms.get(code);
   if (r) return r;
-  r = { code, sim: createSim((Math.random() * 1e9) | 0), clients: new Map(), inputs: {}, pendingEv: [], acc: 0, last: Date.now(), hostId: 0, tickN: 0 };
+  r = { code, mode, sim: createSim((Math.random() * 1e9) | 0, mode), clients: new Map(), inputs: {}, pendingEv: [], acc: 0, last: Date.now(), hostId: 0, tickN: 0 };
   r.timer = setInterval(() => tickRoom(r), 1000 / TICK_RATE);
   rooms.set(code, r);
   console.log('[room] created', code);
@@ -61,7 +61,7 @@ function tickRoom(r) {
 }
 
 function lobbyMsg(r) {
-  return JSON.stringify({ t: 'lobby', host: r.hostId, phase: r.sim.phase, players: r.sim.players.map(p => ({ id: p.id, name: p.name, weapon: p.weapon, slot: p.slot })) });
+  return JSON.stringify({ t: 'lobby', host: r.hostId, mode: r.mode, phase: r.sim.phase, players: r.sim.players.map(p => ({ id: p.id, name: p.name, weapon: p.weapon, slot: p.slot })) });
 }
 function broadcastLobby(r) { const m = lobbyMsg(r); for (const ws of r.clients.keys()) if (ws.readyState === 1) ws.send(m); }
 
@@ -74,8 +74,9 @@ wss.on('connection', (ws) => {
       if (room) return;
       let code = String(d.room || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
       if (!code) code = makeCode();
-      const r = getRoom(code);
-      if (r.clients.size >= MAX_PLAYERS) { ws.send(JSON.stringify({ t: 'err', msg: '房間已滿 (最多 4 人)' })); return; }
+      const r = getRoom(code, d.mode === 'vs' ? 'vs' : 'coop');
+      const cap = r.mode === 'vs' ? 2 : MAX_PLAYERS;
+      if (r.clients.size >= cap) { ws.send(JSON.stringify({ t: 'err', msg: r.mode === 'vs' ? '對戰房間已滿 (2 人)' : '房間已滿 (最多 4 人)' })); return; }
       const name = String(d.name || 'P').replace(/[^\p{L}\p{N} _-]/gu, '').slice(0, 8) || 'P' + (r.clients.size + 1);
       let weapon = Math.max(0, Math.min(4, d.weapon | 0));
       const taken = new Set(r.sim.players.map(q => q.weapon));
@@ -85,7 +86,7 @@ wss.on('connection', (ws) => {
       me = { id: p.id, held: 0, pressed: 0, name };
       room = r; r.clients.set(ws, me);
       if (!r.hostId) r.hostId = p.id;
-      ws.send(JSON.stringify({ t: 'joined', id: p.id, room: code, host: r.hostId === p.id, phase: r.sim.phase, players: r.sim.players.map(q => ({ id: q.id, name: q.name, weapon: q.weapon })) }));
+      ws.send(JSON.stringify({ t: 'joined', id: p.id, room: code, mode: r.mode, host: r.hostId === p.id, phase: r.sim.phase, players: r.sim.players.map(q => ({ id: q.id, name: q.name, weapon: q.weapon })) }));
       broadcastLobby(r);
       console.log('[room]', code, 'join', name, '(' + r.clients.size + ')');
       return;
@@ -95,6 +96,7 @@ wss.on('connection', (ws) => {
     if (d.t === 'weapon') { const p = room.sim.players.find(q => q.id === me.id); const want = Math.max(0, Math.min(4, d.w | 0)); if (p && room.sim.phase === PHASE.LOBBY && !room.sim.players.some(q => q.id !== p.id && q.weapon === want)) { p.weapon = want; broadcastLobby(room); } return; }
     if (d.t === 'start') {
       if (room.hostId !== me.id) return;
+      if (room.mode === 'vs' && room.sim.players.length < 2) { ws.send(JSON.stringify({ t: 'err', msg: '需要 2 位玩家才能開始對戰' })); return; }
       if (room.sim.phase === PHASE.LOBBY || room.sim.phase === PHASE.OVER) { startGame(room.sim); room.pendingEv.push(...room.sim.events); broadcastLobby(room); console.log('[room]', room.code, 'start'); }
       return;
     }

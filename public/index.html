@@ -14,20 +14,29 @@
 </head>
 <body>
 <div id="cabinet">
-  <div class="marquee"><span class="m1">速食街機</span><span class="m2">FAST FOOD ARCADE</span><i class="bulb b1"></i><i class="bulb b2"></i></div>
+  <div class="top">
+    <div class="speaker"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="marquee"><span class="m1">速食街機</span><span class="m2">FAST FOOD ARCADE</span><i class="bulb b1"></i><i class="bulb b2"></i></div>
+    <div class="speaker"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
   <div class="bezel">
     <div id="stage">
       <canvas id="game" width="320" height="180"></canvas>
       <div id="crt"></div>
     </div>
     <div class="sticker s1">1P</div><div class="sticker s2">2P</div>
+    <div class="stripe"></div>
   </div>
   <div class="panel">
-    <div class="coin"><span class="slot"></span><span class="coinText">INSERT COIN</span></div>
-    <div class="stick"><div class="ball"></div></div>
-    <div class="btns"><i class="b red"></i><i class="b blue"></i><i class="b green"></i><i class="b yellow"></i></div>
-    <div class="deck"></div>
+    <div class="side p1"><div class="stick"><div class="ball"></div></div><div class="btns"><i class="b red"></i><i class="b blue"></i><i class="b green"></i><i class="b yellow"></i></div><span class="lbl">1P</span></div>
+    <div class="mid"><span class="coinText">INSERT COIN</span><span class="start">START</span></div>
+    <div class="side p2"><div class="stick"><div class="ball"></div></div><div class="btns"><i class="b red"></i><i class="b blue"></i><i class="b green"></i><i class="b yellow"></i></div><span class="lbl">2P</span></div>
   </div>
+  <div class="body">
+    <div class="coindoor"><span class="slot"></span><span class="slot"></span><span class="ret"></span></div>
+    <div class="logo">速食<br>FAST FOOD</div>
+  </div>
+  <div class="base"></div>
 </div>
 <div id="touch" class="hidden"></div>
 <div id="topbar">
@@ -45,18 +54,23 @@
     <label class="field">名字 <input id="name" maxlength="8" placeholder="玩家"></label>
     <div class="sub">選擇角色（每個角色只有自己的食物攻擊）</div>
     <div id="weapons" class="cards"></div>
+    <div class="sub small">2P 角色（雙人對戰用）</div>
+    <div id="weapons2" class="cards mini"></div>
     <div class="row">
-      <button id="btnSolo" class="big primary">單人開始</button>
+      <button id="btnSolo" class="big primary">單人闖關</button>
+      <button id="btnLocalVs" class="big vs">雙人對戰</button>
       <button id="btnOnline" class="big">連線合作</button>
+      <button id="btnOnlineVs" class="big vs">連線對戰</button>
     </div>
     <div class="help">
       <div><b>鍵盤</b> 方向鍵/WASD 移動 · J/Z 攻擊 · K/X 跳 · L/C 奶昔滑步 · I/V 漢堡隕石</div>
+      <div><b>雙人對戰</b> 1P：WASD + J K L I　2P：方向鍵 + 數字鍵 1 2 3 5（或 , . / ;）</div>
       <div><b>手機</b> 左半邊滑動移動 · 右側按鈕 · 建議橫向</div>
     </div>
   </section>
 
   <section id="online" class="screen hidden">
-    <h2>連線合作（最多 4 人）</h2>
+    <h2 id="onlineTitle">連線合作（最多 4 人）</h2>
     <p class="tag">同一台伺服器、同一組代碼就能一起打</p>
     <button id="btnCreate" class="big primary">建立房間</button>
     <div class="or">或輸入朋友的房間代碼</div>

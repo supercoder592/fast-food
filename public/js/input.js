@@ -1,14 +1,19 @@
 // Keyboard + multi-touch virtual pad + gamepad → input masks.
 import { IN } from '../sim/constants.js';
 
-const KEYS = {
-  ArrowLeft: IN.L, KeyA: IN.L, ArrowRight: IN.R, KeyD: IN.R, ArrowUp: IN.U, KeyW: IN.U, ArrowDown: IN.D, KeyS: IN.D,
-  KeyJ: IN.ATK, KeyZ: IN.ATK, Space: IN.ATK, KeyK: IN.JUMP, KeyX: IN.JUMP, KeyL: IN.DASH, KeyC: IN.DASH, ShiftLeft: IN.DASH,
-  KeyI: IN.SPEC, KeyV: IN.SPEC, 
+export const KEYMAPS = {
+  all: { ArrowLeft: IN.L, KeyA: IN.L, ArrowRight: IN.R, KeyD: IN.R, ArrowUp: IN.U, KeyW: IN.U, ArrowDown: IN.D, KeyS: IN.D,
+    KeyJ: IN.ATK, KeyZ: IN.ATK, Space: IN.ATK, KeyK: IN.JUMP, KeyX: IN.JUMP, KeyL: IN.DASH, KeyC: IN.DASH, ShiftLeft: IN.DASH, KeyI: IN.SPEC, KeyV: IN.SPEC },
+  p1: { KeyA: IN.L, KeyD: IN.R, KeyW: IN.U, KeyS: IN.D, KeyJ: IN.ATK, KeyK: IN.JUMP, KeyL: IN.DASH, KeyI: IN.SPEC, KeyU: IN.SPEC },
+  p2: { ArrowLeft: IN.L, ArrowRight: IN.R, ArrowUp: IN.U, ArrowDown: IN.D, Numpad1: IN.ATK, Numpad2: IN.JUMP, Numpad3: IN.DASH, Numpad5: IN.SPEC,
+    Comma: IN.ATK, Period: IN.JUMP, Slash: IN.DASH, Quote: IN.SPEC, Semicolon: IN.SPEC },
 };
 
 export class Input {
-  constructor() {
+  constructor(keymap = 'all', padIndex = -1) {
+    let KEYS = KEYMAPS[keymap] || KEYMAPS.all;
+    this.setKeymap = (k) => { KEYS = KEYMAPS[k] || KEYMAPS.all; this.keyHeld = 0; };
+    this.padIndex = padIndex;
     this.keyHeld = 0; this.touchHeld = 0; this.padHeld = 0;
     this.pressedAcc = 0; this.prevHeld = 0;
     this.enabled = true;
@@ -34,8 +39,11 @@ export class Input {
   pollGamepad() {
     const gps = navigator.getGamepads ? navigator.getGamepads() : [];
     let m = 0;
-    for (const gp of gps) {
+    for (let gi = 0; gi < gps.length; gi++) {
+      const gp = gps[gi];
       if (!gp) continue;
+      if (this.padIndex >= 0 && gi !== this.padIndex) continue;
+      if (this.padIndex === -2) continue;
       const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
       if (ax < -0.4 || (gp.buttons[14] && gp.buttons[14].pressed)) m |= IN.L;
       if (ax > 0.4 || (gp.buttons[15] && gp.buttons[15].pressed)) m |= IN.R;

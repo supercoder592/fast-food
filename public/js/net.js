@@ -21,7 +21,7 @@ export class Net {
   pingLoop() { this.pingTimer = setInterval(() => { if (this.connected) this.send({ t: 'ping', at: performance.now() }); }, 2000); }
   close() { if (this.pingTimer) clearInterval(this.pingTimer); if (this.ws) { try { this.ws.close(); } catch (e) {} } this.ws = null; this.connected = false; }
   send(o) { if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(o)); }
-  join(room, name, weapon) { this.send({ t: 'join', room, name, weapon }); }
+  join(room, name, weapon, mode = 'coop') { this.send({ t: 'join', room, name, weapon, mode }); }
   start() { this.send({ t: 'start' }); }
   sendInput(held, pressed) { this.send({ t: 'i', h: held, p: pressed }); }
   setWeapon(w) { this.send({ t: 'weapon', w }); }

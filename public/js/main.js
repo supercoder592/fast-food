@@ -4,7 +4,7 @@ import { createSim, addPlayer, startGame, step, snapshot } from '../sim/sim.js';
 import { WEAPONS } from '../sim/weapons.js';
 import { Renderer } from './render.js';
 import { FX } from './fx.js';
-import { Input } from './input.js';
+import { Input, KEYMAPS } from './input.js';
 import { Net } from './net.js';
 import { initAudio, play, startBgm, toggleBgm, setMuted, isMuted, bgmEnabled } from './sfx.js';
 import { weaponSprite, miscSprite, charSprite } from './sprites.js';
@@ -13,21 +13,23 @@ const $ = (s) => document.querySelector(s);
 const canvas = $('#game');
 const renderer = new Renderer(canvas);
 const fx = new FX();
-const input = new Input();
+const input = new Input('all', -1);
+let input2 = null;
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 if (isTouch) { input.buildTouch($('#touch')); }
 
-const S = { mode: null, sim: null, net: null, localId: 0, weapon: 0, name: '', last: 0, acc: 0, view: null, sendTimer: null, running: false };
+const S = { mode: null, sim: null, net: null, localId: 0, localId2: 0, weapon: 0, weapon2: 2, name: '', last: 0, acc: 0, view: null, sendTimer: null, running: false, vs: false };
 let audioReady = false;
 const ensureAudio = () => { if (!audioReady) { initAudio(); audioReady = true; } };
 input.onAny = ensureAudio;
 window.addEventListener('pointerdown', ensureAudio, { once: true });
 
 // ---------------------------------------------------------------- menu
-function buildWeaponCards() {
-  const root = $('#weapons'); root.innerHTML = '';
+function buildWeaponCards() { buildCards('#weapons', 'weapon'); buildCards('#weapons2', 'weapon2'); }
+function buildCards(sel, key) {
+  const root = $(sel); if (!root) return; root.innerHTML = '';
   WEAPONS.forEach((w, i) => {
-    const el = document.createElement('div'); el.className = 'card' + (i === S.weapon ? ' on' : '');
+    const el = document.createElement('div'); el.className = 'card' + (i === S[key] ? ' on' : '');
     const c = document.createElement('canvas'); c.width = 32; c.height = 32;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
     const ws = charSprite(w.hero.skin, 'idle0'); const sc = Math.min(30 / ws.w, 30 / ws.h);
@@ -36,7 +38,7 @@ function buildWeaponCards() {
     const hero = document.createElement('div'); hero.className = 'n'; hero.textContent = w.hero.name; el.insertBefore(hero, c);
     const n = document.createElement('div'); n.className = 'n'; n.textContent = w.name; n.style.color = w.color; el.appendChild(n);
     const d = document.createElement('div'); d.className = 'd'; d.textContent = w.hero.blurb + ' ' + w.desc; el.appendChild(d);
-    el.addEventListener('click', () => { S.weapon = i; buildWeaponCards(); play('ui'); });
+    el.addEventListener('click', () => { S[key] = i; if (key === 'weapon' && S.weapon2 === i) S.weapon2 = (i + 1) % WEAPONS.length; if (key === 'weapon2' && S.weapon === i) S.weapon = (i + 1) % WEAPONS.length; buildWeaponCards(); play('ui'); });
     root.appendChild(el);
   });
 }
@@ -51,8 +53,10 @@ function show(name) {
   $('#btnLeave').classList.toggle('hidden', !S.mode);
 }
 
-$('#btnSolo').addEventListener('click', () => { ensureAudio(); startOffline(); });
-$('#btnOnline').addEventListener('click', () => { ensureAudio(); $('#onlineMsg').textContent = ''; show('online'); });
+$('#btnSolo').addEventListener('click', () => { ensureAudio(); startOffline(false); });
+$('#btnLocalVs').addEventListener('click', () => { ensureAudio(); startOffline(true); });
+$('#btnOnline').addEventListener('click', () => { ensureAudio(); S.vs = false; $('#onlineTitle').textContent = '連線合作（最多 4 人）'; $('#onlineMsg').textContent = ''; show('online'); });
+$('#btnOnlineVs').addEventListener('click', () => { ensureAudio(); S.vs = true; $('#onlineTitle').textContent = '連線對戰（1 對 1）'; $('#onlineMsg').textContent = ''; show('online'); });
 $('#btnBack').addEventListener('click', () => show('menu'));
 $('#btnCreate').addEventListener('click', () => startOnline(''));
 $('#btnJoin').addEventListener('click', () => { const c = $('#roomCode').value.trim(); if (c.length < 4) { $('#onlineMsg').textContent = '請輸入 4 碼房間代碼'; return; } startOnline(c); });
@@ -72,17 +76,23 @@ function goFullscreen() {
 }
 
 // ---------------------------------------------------------------- offline
-function startOffline() {
+function startOffline(vs) {
   S.name = getName();
-  S.mode = 'offline';
-  S.sim = createSim((Math.random() * 1e9) | 0);
+  S.mode = 'offline'; S.vs = vs;
+  S.sim = createSim((Math.random() * 1e9) | 0, vs ? 'vs' : 'coop');
   const p = addPlayer(S.sim, { name: S.name, weapon: S.weapon });
   S.localId = p.id; fx.localIds = new Set([p.id]);
+  if (vs) {
+    const p2 = addPlayer(S.sim, { name: '挑戰者', weapon: S.weapon2 });
+    S.localId2 = p2.id; fx.localIds.add(p2.id);
+    if (!input2) input2 = new Input('p2', 1);
+    input.setKeymap && input.setKeymap('p1');
+  } else { input.setKeymap && input.setKeymap('all'); }
   startGame(S.sim);
   fx.handleEvents(S.sim.events);
   show(null);
   $('#touch').classList.toggle('hidden', !isTouch);
-  $('#netInfo').textContent = '單人';
+  $('#netInfo').textContent = vs ? '雙人對戰' : '單人';
   if (isTouch) goFullscreen();
   startBgm();
   S.running = true; S.acc = 0; S.last = performance.now();
@@ -102,7 +112,7 @@ async function startOnline(code) {
   net.on('joined', (d) => {
     S.localId = d.id; fx.localIds = new Set([d.id]);
     $('#lobbyCode').textContent = d.room;
-    $('#netInfo').textContent = '房間 ' + d.room;
+    $('#netInfo').textContent = (d.mode === 'vs' ? '對戰房 ' : '房間 ') + d.room; S.vs = d.mode === 'vs'; input.setKeymap && input.setKeymap('all');
     updateLobby({ host: d.host ? d.id : 0, players: d.players, phase: d.phase });
     show(d.phase === PHASE.LOBBY ? 'lobby' : null);
     $('#touch').classList.toggle('hidden', !isTouch);
@@ -112,7 +122,7 @@ async function startOnline(code) {
     S.sendTimer = setInterval(() => { const { held, pressed } = input.consume(); net.sendInput(held, pressed); }, 1000 / 30);
   });
   net.on('lobby', (d) => updateLobby(d));
-  net.join(code, S.name, S.weapon);
+  net.join(code, S.name, S.weapon, S.vs ? 'vs' : 'coop');
 }
 function updateLobby(d) {
   const ul = $('#lobbyPlayers'); ul.innerHTML = '';
@@ -123,7 +133,7 @@ function updateLobby(d) {
   }
   const host = d.host === S.localId;
   $('#btnStart').classList.toggle('hidden', !host);
-  $('#lobbyHint').textContent = host ? (d.players.length > 1 ? '大家到齊了就按開始！' : '可以一個人先開始，朋友之後也能中途加入。') : '等待房主開始…';
+  $('#lobbyHint').textContent = host ? (S.vs ? (d.players.length > 1 ? '對手到了，按開始！' : '等待對手加入…') : (d.players.length > 1 ? '大家到齊了就按開始！' : '可以一個人先開始，朋友之後也能中途加入。')) : '等待房主開始…';
   if (d.phase && d.phase !== PHASE.LOBBY) show(null);
 }
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -154,9 +164,10 @@ function loop(now) {
       S.acc += dt * scale;
       let n = 0;
       while (S.acc >= STEP && n < 4) {
-        const inp = input.consume();
-        const ev = step(sim, { [S.localId]: inp });
-        if (ev.length) fx.handleEvents(ev, null);
+        const inputs = { [S.localId]: input.consume() };
+        if (S.vs && input2) inputs[S.localId2] = input2.consume();
+        const ev = step(sim, inputs);
+        if (ev.length) fx.handleEvents(ev, S.view);
         S.acc -= STEP; n++;
         if (fx.freeze > 0) { S.acc = 0; break; }
       }
@@ -166,7 +177,7 @@ function loop(now) {
     const net = S.net;
     if (fx.freeze > 0) net.pausedMs += dt; else net.pausedMs = Math.max(0, net.pausedMs - dt * 0.35);
     const ev = net.drainEvents();
-    if (ev.length) fx.handleEvents(ev, null);
+    if (ev.length) fx.handleEvents(ev, S.view);
     const v = net.getView(now);
     if (v) S.view = v;
     if (S.view) {
