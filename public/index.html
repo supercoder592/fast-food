@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#120c24">
+<title>速食街機 FAST FOOD ARCADE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 fill=%27%23120c24%27/%3E%3Crect x=%273%27 y=%273%27 width=%2710%27 height=%274%27 fill=%27%23e8a84a%27/%3E%3Crect x=%273%27 y=%277%27 width=%2710%27 height=%272%27 fill=%27%236cc04a%27/%3E%3Crect x=%273%27 y=%279%27 width=%2710%27 height=%274%27 fill=%27%23c9842c%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="320" height="180"></canvas>
+  <div id="crt"></div>
+  <div id="touch" class="hidden"></div>
+  <div id="topbar">
+    <span id="netInfo"></span>
+    <button id="btnMute" title="音效">🔊</button>
+    <button id="btnBgm" title="音樂">♪</button>
+    <button id="btnFull" title="全螢幕">⛶</button>
+    <button id="btnLeave" title="離開" class="hidden">✕</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <section id="menu" class="screen">
+    <h1><span class="t1">速食街機</span><span class="t2">FAST FOOD ARCADE</span></h1>
+    <p class="tag">速食主義者 VS 慢食聯盟 · 8-BIT 橫向清版格鬥</p>
+    <label class="field">名字 <input id="name" maxlength="8" placeholder="玩家"></label>
+    <div class="sub">選擇起始武器（遊戲中可隨時切換）</div>
+    <div id="weapons" class="cards"></div>
+    <div class="row">
+      <button id="btnSolo" class="big primary">單人開始</button>
+      <button id="btnOnline" class="big">連線合作</button>
+    </div>
+    <div class="help">
+      <div><b>鍵盤</b> 方向鍵/WASD 移動 · J/Z 攻擊 · K/X 跳 · L/C 可樂衝刺 · I/V 漢堡隕石 · Q/E 換武器</div>
+      <div><b>手機</b> 左半邊滑動移動 · 右側按鈕 · 建議橫向</div>
+    </div>
+  </section>
+
+  <section id="online" class="screen hidden">
+    <h2>連線合作（最多 4 人）</h2>
+    <p class="tag">同一台伺服器、同一組代碼就能一起打</p>
+    <button id="btnCreate" class="big primary">建立房間</button>
+    <div class="or">或輸入朋友的房間代碼</div>
+    <div class="row">
+      <input id="roomCode" maxlength="4" placeholder="代碼" autocapitalize="characters">
+      <button id="btnJoin" class="big">加入</button>
+    </div>
+    <p id="onlineMsg" class="msg"></p>
+    <button id="btnBack" class="link">← 返回</button>
+  </section>
+
+  <section id="lobby" class="screen hidden">
+    <div class="sub">房間代碼</div>
+    <div id="lobbyCode" class="code">----</div>
+    <div class="sub">把代碼給朋友，他們在「連線合作」輸入即可加入。等待時可以在後面的街道熱身。</div>
+    <ul id="lobbyPlayers"></ul>
+    <button id="btnStart" class="big primary hidden">開始遊戲</button>
+    <p id="lobbyHint" class="msg">等待房主開始…</p>
+    <button id="btnLobbyLeave" class="link">← 離開房間</button>
+  </section>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

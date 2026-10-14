@@ -1,0 +1,15 @@
+{
+  "name": "fast-food-arcade",
+  "version": "0.1.0",
+  "description": "速食街機 FAST FOOD ARCADE — 8-bit beat 'em up with online co-op",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/sim.test.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

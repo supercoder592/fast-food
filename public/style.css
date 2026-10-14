@@ -1,0 +1,75 @@
+:root { --bg: #120c24; --ink: #fff6e5; --ye: #ffd23f; --re: #e23c2c; --pu: #2a1f4a; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: "Press Start 2P", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", monospace; overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; }
+body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+#stage { position: relative; width: 100vw; height: calc(100vw * 9 / 16); max-height: 100vh; max-width: calc(100vh * 16 / 9); background: #000; }
+#game { width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+#crt { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px); box-shadow: inset 0 0 60px rgba(0,0,0,0.55); mix-blend-mode: multiply; }
+.hidden { display: none !important; }
+
+#topbar { position: fixed; top: 4px; right: 6px; display: flex; gap: 4px; align-items: center; z-index: 5; }
+#topbar button { background: rgba(27,16,38,0.7); color: var(--ink); border: 2px solid #4a3a6a; border-radius: 6px; font-size: 14px; width: 30px; height: 30px; cursor: pointer; padding: 0; }
+#topbar button.off { opacity: 0.45; }
+#netInfo { font-size: 9px; color: #b8adc6; margin-right: 4px; font-family: "Noto Sans TC", sans-serif; }
+
+#overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(42,31,74,0.92), rgba(18,12,36,0.97)); z-index: 10; overflow: auto; }
+.screen { width: min(92vw, 560px); padding: 16px 18px; text-align: center; }
+h1 { margin: 0 0 6px; line-height: 1.3; }
+h1 .t1 { display: block; font-size: clamp(22px, 6vw, 38px); color: var(--ye); text-shadow: 3px 3px 0 var(--re), 6px 6px 0 #1b1026; font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; font-weight: 900; }
+h1 .t2 { display: block; font-size: clamp(10px, 2.4vw, 14px); color: var(--ink); margin-top: 6px; letter-spacing: 1px; }
+h2 { font-size: 16px; color: var(--ye); font-family: "Noto Sans TC", sans-serif; }
+.tag, .sub, .help, .msg, .or { font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; }
+.tag { font-size: 12px; color: #b8adc6; margin: 4px 0 10px; }
+.sub { font-size: 12px; color: #b8adc6; margin: 8px 0 6px; }
+.help { font-size: 11px; color: #8d82a0; margin-top: 12px; line-height: 1.6; }
+.help b { color: var(--ye); }
+.msg { font-size: 12px; color: #ff9a3a; min-height: 16px; }
+.or { font-size: 12px; color: #8d82a0; margin: 12px 0 6px; }
+.field { font-family: "Noto Sans TC", sans-serif; font-size: 13px; display: inline-flex; gap: 8px; align-items: center; }
+input { font-family: inherit; font-size: 16px; padding: 8px 10px; border: 3px solid #4a3a6a; border-radius: 6px; background: #1b1026; color: var(--ink); width: 150px; text-align: center; outline: none; }
+input:focus { border-color: var(--ye); }
+#roomCode { width: 110px; text-transform: uppercase; letter-spacing: 4px; font-family: "Press Start 2P", monospace; }
+.row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+button.big { font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; font-weight: 900; font-size: 16px; padding: 12px 22px; border: 3px solid #1b1026; border-radius: 8px; background: #4a3a6a; color: var(--ink); cursor: pointer; box-shadow: 0 4px 0 #1b1026; }
+button.big:active { transform: translateY(3px); box-shadow: 0 1px 0 #1b1026; }
+button.big.primary { background: var(--re); color: #fff; }
+button.link { background: none; border: none; color: #b8adc6; font-family: "Noto Sans TC", sans-serif; font-size: 13px; margin-top: 14px; cursor: pointer; }
+.cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.card { background: #1b1026; border: 3px solid #4a3a6a; border-radius: 8px; padding: 6px 2px; cursor: pointer; font-family: "Noto Sans TC", sans-serif; }
+.card.on { border-color: var(--ye); background: #2a1f4a; }
+.card canvas { width: 40px; height: 40px; image-rendering: pixelated; display: block; margin: 0 auto 4px; }
+.card .n { font-size: 11px; font-weight: 900; }
+.card .d { font-size: 9px; color: #8d82a0; margin-top: 3px; line-height: 1.35; display: none; }
+.card.on .d { display: block; }
+.code { font-size: clamp(28px, 8vw, 44px); color: var(--ye); letter-spacing: 8px; margin: 6px 0 4px; text-shadow: 3px 3px 0 #1b1026; }
+#lobbyPlayers { list-style: none; padding: 0; margin: 10px 0; font-family: "Noto Sans TC", sans-serif; font-size: 14px; }
+#lobbyPlayers li { padding: 4px; }
+#lobbyPlayers li .w { color: var(--ye); font-size: 11px; margin-left: 6px; }
+#lobbyPlayers li .h { color: #ff9a3a; font-size: 10px; margin-left: 6px; }
+
+/* ---- touch controls ---- */
+#touch { position: fixed; inset: 0; z-index: 4; }
+.tp-stick { position: absolute; width: 120px; height: 120px; left: 8%; bottom: 12%; opacity: 0.35; pointer-events: none; }
+.tp-stick.on { opacity: 0.75; }
+.tp-base { position: absolute; inset: 20px; border: 3px solid #fff6e5; border-radius: 50%; background: rgba(27,16,38,0.4); }
+.tp-knob { position: absolute; left: 40px; top: 40px; width: 40px; height: 40px; border-radius: 50%; background: #ffd23f; border: 3px solid #1b1026; }
+.tp-btns { position: absolute; right: 3%; bottom: 6%; width: 190px; height: 190px; }
+.tp-btn { position: absolute; border-radius: 50%; border: 3px solid #1b1026; background: rgba(74,58,106,0.75); color: #fff6e5; font-family: "Noto Sans TC", "PingFang TC", sans-serif; font-weight: 900; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; touch-action: none; box-shadow: 0 4px 0 rgba(27,16,38,0.9); }
+.tp-btn span { font-size: 15px; }
+.tp-btn small { font-size: 8px; opacity: 0.8; }
+.tp-btn.on { transform: translateY(3px); box-shadow: 0 1px 0 rgba(27,16,38,0.9); filter: brightness(1.3); }
+.tp-atk { width: 84px; height: 84px; left: 0; bottom: 0; background: rgba(226,60,44,0.8); }
+.tp-jump { width: 66px; height: 66px; right: 0; bottom: 30px; background: rgba(47,79,179,0.8); }
+.tp-dash { width: 62px; height: 62px; left: 10px; top: 0; background: rgba(107,58,26,0.85); }
+.tp-spec { width: 62px; height: 62px; right: 14px; top: -10px; background: rgba(255,210,63,0.85); color: #1b1026; }
+.tp-swap { position: absolute; right: 3%; top: 15%; width: 70px; height: 34px; border-radius: 8px; }
+.tp-swap span { font-size: 11px; }
+@media (max-height: 420px) { .tp-btns { transform: scale(0.8); transform-origin: bottom right; } .tp-stick { transform: scale(0.85); } }
+
+@media (orientation: portrait) {
+  body { align-items: flex-start; padding-top: 40px; }
+  #topbar { top: 6px; }
+  .tp-btns { bottom: 8%; right: 6%; }
+  .tp-stick { bottom: 14%; left: 6%; }
+  .tp-swap { top: auto; bottom: 42%; right: 6%; }
+}
