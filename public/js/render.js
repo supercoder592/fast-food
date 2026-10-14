@@ -4,6 +4,7 @@ import { WEAPONS, DASH, SPECIAL } from '../sim/weapons.js';
 import { ENEMIES, STAGE } from '../sim/enemies.js';
 import { charSprite, bodySprite, weaponSprite, miscSprite, whiteOf, pixelText, pixelTextWidth } from './sprites.js';
 
+const SC = 2; // entity sprite scale
 const CJK = 'bold 8px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 const CJK_S = 'bold 7px "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif';
 const lerpAngle = (rot, t) => {
@@ -160,14 +161,15 @@ export class Renderer {
     const sx = Math.round(e.x - camX), sy = Math.round(e.y);
     const sc = Math.max(0.35, 1 - e.z / 160);
     g.globalAlpha = 0.35 * sc + 0.1; g.fillStyle = '#120c18';
-    g.beginPath(); g.ellipse(sx, sy, w * sc + 2, 2.5 * sc + 1, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
+    g.beginPath(); g.ellipse(sx, sy, (w * sc + 2) * 1.6, (2.5 * sc + 1) * 1.4, 0, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1;
   }
 
-  blit(g, spr, sx, sy, dir, rot = 0, alpha = 1) {
+  blit(g, spr, sx, sy, dir, rot = 0, alpha = 1, sc = SC) {
     const img = dir < 0 ? spr.flip : spr.img;
+    const w = spr.w * sc, h = spr.h * sc;
     if (alpha !== 1) g.globalAlpha = alpha;
-    if (rot) { g.save(); g.translate(sx, sy - spr.h / 2); g.rotate(rot); g.drawImage(img, -spr.w / 2, -spr.h / 2); g.restore(); }
-    else g.drawImage(img, Math.round(sx - spr.w / 2), Math.round(sy - spr.h));
+    if (rot) { g.save(); g.translate(sx, sy - h / 2); g.rotate(rot); g.drawImage(img, -w / 2, -h / 2, w, h); g.restore(); }
+    else g.drawImage(img, Math.round(sx - w / 2), Math.round(sy - h), w, h);
     if (alpha !== 1) g.globalAlpha = 1;
   }
 
@@ -193,7 +195,7 @@ export class Renderer {
       default: pose = 'idle0';
     }
     const skin = w.hero ? w.hero.skin : 'player';
-    if (p.state === 'down' || p.state === 'dead') { const spr = charSprite(skin, 'hurt'); this.blit(g, spr, sx, sy + 8, p.dir, rot); }
+    if (p.state === 'down' || p.state === 'dead') { const spr = charSprite(skin, 'hurt'); this.blit(g, spr, sx, sy + 16, p.dir, rot); }
     else {
       const spr = charSprite(skin, pose);
       const blink = p.inv > 0 && p.state !== 'special' && p.state !== 'spawn' && ((this.frame >> 2) & 1);
@@ -209,30 +211,30 @@ export class Renderer {
         const hide = mdef && mdef.hold === 'gone' && mdef.proj && st >= mdef.proj.at;
         if (w.id === 'drumstick') {
           const ws = weaponSprite('drumstick');
-          let ang, ax = -3, az = 12;
+          let ang, ax = -6, az = 24;
           if (mdef && mdef.rot) ang = lerpAngle(mdef.rot, st);
           else if (p.state === 'dash') ang = 120;
           else if (p.state === 'hurt' || p.state === 'launched') ang = -60;
           else ang = -42 + ((pose.startsWith('walk')) ? Math.sin(st * 0.5) * 5 : 0);
-          if (pose === 'swing') { ax = 7; az = 13; } else if (pose === 'windup') { ax = -3; az = 14; } else if (pose === 'slam') { ax = 4; az = 9; }
-          g.save(); g.translate(sx + p.dir * ax, sy - az); g.scale(p.dir, 1); g.rotate(ang * Math.PI / 180);
+          if (pose === 'swing') { ax = 14; az = 26; } else if (pose === 'windup') { ax = -6; az = 28; } else if (pose === 'slam') { ax = 8; az = 18; }
+          g.save(); g.translate(sx + p.dir * ax, sy - az); g.scale(p.dir * SC, SC); g.rotate(ang * Math.PI / 180);
           g.drawImage((p.flash > 0 && (p.flash & 1)) ? whiteOf(ws).img : ws.img, -ws.pivot[0], -ws.pivot[1]);
           g.restore();
         } else if (!hide) {
           const it = miscSprite(w.item);
-          let ax = 6, az = 10;
-          if (pose === 'throw' || pose === 'spray') { ax = 9; az = 13; } else if (pose === 'raise') { ax = 2; az = 26; } else if (pose === 'dump') { ax = 4; az = 24; } else if (pose === 'spin') { ax = 0; az = 14; } else if (pose === 'windup') { ax = -4; az = 14; }
+          let ax = 12, az = 20;
+          if (pose === 'throw' || pose === 'spray') { ax = 18; az = 26; } else if (pose === 'raise') { ax = 4; az = 52; } else if (pose === 'dump') { ax = 8; az = 48; } else if (pose === 'spin') { ax = 0; az = 28; } else if (pose === 'windup') { ax = -8; az = 28; }
           if (w.id === 'cola' && mdef && mdef.pose === 'spray' && st < (mdef.stream ? mdef.stream[0] : 0)) ax += Math.round(Math.sin(st * 1.5) * 2); // shaking the can
-          this.blit(g, it, sx + p.dir * ax, sy - az + it.h / 2, p.dir);
+          this.blit(g, it, sx + p.dir * ax, sy - az + it.h, p.dir);
         }
         // cola stream
         if (w.id === 'cola' && mdef && mdef.stream && st >= mdef.stream[0] && st <= mdef.stream[1]) {
           const len = Math.min(64, (st - mdef.stream[0] + 1) * 9);
-          const x0 = sx + p.dir * 10, y0 = sy - 14;
+          const x0 = sx + p.dir * 20, y0 = sy - 28;
           for (let i = 0; i < len; i += 2) {
             const wob = Math.sin((i + st * 3) * 0.5) * (1 + i / 20);
             g.fillStyle = ((i >> 1) + st) % 3 ? '#6b3a1a' : '#fff6e5';
-            g.fillRect(x0 + p.dir * i, Math.round(y0 - i * 0.12 + wob), 2, 2 + ((i / 24) | 0));
+            g.fillRect(x0 + p.dir * i, Math.round(y0 - i * 0.12 + wob), 3, 3 + ((i / 20) | 0));
           }
           if (fx && (this.frame & 1)) fx.part({ x: p.x + p.dir * (10 + len), y: p.y, z: 16 + Math.random() * 8, vx: p.dir * 2, vz: Math.random() * 2, grav: 0.1, life: 10, size: 1, kind: 'fizz', color: Math.random() < 0.5 ? '#fff6e5' : '#6b3a1a' });
         }
@@ -241,7 +243,7 @@ export class Renderer {
         drawBody();
         // special pose: giant pointing finger / burger halo
         const bs = miscSprite('burger'); const bob = Math.sin(st * 0.4) * 2;
-        this.blit(g, bs, sx, sy - 30 + bob, 1);
+        this.blit(g, bs, sx, sy - 56 + bob, 1);
       }
       // dash cola jet trail
       if (p.state === 'dash' && fx) fx.part({ x: p.x - p.dir * 8, y: p.y, z: p.z + 8 + Math.random() * 8, vx: -p.dir * 2, vz: Math.random(), life: 12, size: 2, kind: 'fizz', color: Math.random() < 0.5 ? '#ffb6c8' : '#fff6e5' });
@@ -250,8 +252,8 @@ export class Renderer {
     const local = opts.localId === p.id;
     g.font = CJK_S; g.textAlign = 'center';
     const tag = (local ? '▶' : '') + p.name;
-    g.fillStyle = '#1b1026'; g.fillText(tag, sx + 1, sy - 28 + 1); g.fillStyle = local ? '#ffd23f' : '#fff6e5'; g.fillText(tag, sx, sy - 28);
-    if (p.meter >= METER_MAX && ((this.frame >> 3) & 1)) pixelText(g, 'SP!', sx, sy - 37, '#ffd23f', 1, 'center');
+    g.fillStyle = '#1b1026'; g.fillText(tag, sx + 1, sy - 52 + 1); g.fillStyle = local ? '#ffd23f' : '#fff6e5'; g.fillText(tag, sx, sy - 52);
+    if (p.meter >= METER_MAX && ((this.frame >> 3) & 1)) pixelText(g, 'SP!', sx, sy - 62, '#ffd23f', 1, 'center');
   }
 
   // ---------------------------------------------------------------- enemies
@@ -280,32 +282,33 @@ export class Renderer {
     const img = flashOn ? whiteOf(spr) : windupOn ? this.tintOf(spr, '#ff3a2a') : spr;
     if (e.state === 'buried') {
       // half sunk into the ground: clip the bottom half and draw a dirt mound
-      g.save(); g.beginPath(); g.rect(sx - 20, sy - spr.h, 40, spr.h * 0.55); g.clip();
+      const H2 = spr.h * SC;
+      g.save(); g.beginPath(); g.rect(sx - 40, sy - H2, 80, H2 * 0.55); g.clip();
       const wob = Math.sin(st * 0.6) * 1.5;
-      this.blit(g, img, sx + wob, sy + spr.h * 0.45, e.dir, 0);
+      this.blit(g, img, sx + wob, sy + H2 * 0.45, e.dir, 0);
       g.restore();
-      g.fillStyle = '#5a4a3a'; g.beginPath(); g.ellipse(sx, sy - spr.h * 0.42, 12, 4, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#7a6a4a'; g.beginPath(); g.ellipse(sx, sy - spr.h * 0.42 - 1, 9, 2.5, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#3a3038'; g.fillRect(sx - 14, sy - spr.h * 0.42 + 2, 28, 1);
-      g.font = CJK_S; g.textAlign = 'center'; g.fillStyle = '#1b1026'; g.fillText('埋進土裡!', sx + 1, sy - spr.h * 0.42 - 8 + 1); g.fillStyle = '#ffd23f'; g.fillText('埋進土裡!', sx, sy - spr.h * 0.42 - 8);
+      g.fillStyle = '#5a4a3a'; g.beginPath(); g.ellipse(sx, sy - H2 * 0.42, 22, 6, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#7a6a4a'; g.beginPath(); g.ellipse(sx, sy - H2 * 0.42 - 1, 17, 4, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#3a3038'; g.fillRect(sx - 26, sy - H2 * 0.42 + 3, 52, 1);
+      g.font = CJK_S; g.textAlign = 'center'; g.fillStyle = '#1b1026'; g.fillText('埋進土裡!', sx + 1, sy - H2 * 0.42 - 8 + 1); g.fillStyle = '#ffd23f'; g.fillText('埋進土裡!', sx, sy - H2 * 0.42 - 8);
     } else if (e.state === 'down') {
-      this.blit(g, img, sx, sy + spr.h * 0.3, e.dir, rot);
+      this.blit(g, img, sx, sy + spr.h * SC * 0.3, e.dir, rot);
     } else if (e.state === 'dying') {
-      this.blit(g, img, sx, sy + spr.h * 0.5, e.dir, rot);
+      this.blit(g, img, sx, sy + spr.h * SC * 0.5, e.dir, rot);
       if (fx && (this.frame & 1)) fx.part({ x: e.x, y: e.y, z: e.z + 10, vx: 0, vz: 0.5, life: 10, size: 2, kind: 'star', color: '#ffd23f' });
     } else {
       this.blit(g, img, sx, sy, e.dir, rot);
     }
     // monk staff / boss ladle hint, charge trail
     if (e.type === 'roll' && e.state === 'attack' && e.ak === 'charge' && fx && (this.frame & 1)) fx.part({ x: e.x - e.dir * 8, y: e.y, z: 2, vx: -e.dir, vz: 0.6, life: 12, size: 3, kind: 'dust', color: '#c9b89a' });
-    if (e.state === 'windup' && e.ak === 'slam') { g.fillStyle = ((this.frame >> 2) & 1) ? '#ff3a2a' : '#ffd23f'; pixelText(g, '!', sx, sy - spr.h - 10, g.fillStyle, 2, 'center'); }
+    if (e.state === 'windup' && e.ak === 'slam') { g.fillStyle = ((this.frame >> 2) & 1) ? '#ff3a2a' : '#ffd23f'; pixelText(g, '!', sx, sy - spr.h * SC - 10, g.fillStyle, 2, 'center'); }
     // name + hp bar
     if (e.state !== 'dying' && e.state !== 'buried') {
-      const top = sy - spr.h - 3 - (e.state === 'down' ? -spr.h * 0.6 : 0);
+      const top = sy - spr.h * SC - 3 - (e.state === 'down' ? -spr.h * SC * 0.6 : 0);
       const showName = d.boss || e.hp < e.maxHp || e.state === 'windup' || e.state === 'attack';
       if (showName) { g.font = CJK_S; g.textAlign = 'center'; g.fillStyle = '#1b1026'; g.fillText(d.name, sx + 1, top - 3); g.fillStyle = d.boss ? '#ff9a3a' : e.state === 'windup' ? '#ff5a3a' : '#f3d9ff'; g.fillText(d.name, sx, top - 4); }
       if (e.hp < e.maxHp && !d.boss) {
-        const bw = 16; const f = Math.max(0, e.hp / e.maxHp);
+        const bw = 24; const f = Math.max(0, e.hp / e.maxHp);
         g.fillStyle = '#1b1026'; g.fillRect(sx - bw / 2 - 1, top - 2, bw + 2, 4);
         g.fillStyle = '#5a1a1a'; g.fillRect(sx - bw / 2, top - 1, bw, 2);
         g.fillStyle = f > 0.5 ? '#6cf05a' : f > 0.25 ? '#ffd23f' : '#ff5a3a'; g.fillRect(sx - bw / 2, top - 1, Math.round(bw * f), 2);
@@ -316,7 +319,7 @@ export class Renderer {
   // ---------------------------------------------------------------- projectiles / pickups
   drawProj(g, j, camX, fx) {
     const sx = Math.round(j.x - camX), sy = Math.round(j.y - j.z);
-    if (j.type === 'friesdart') { g.save(); g.translate(sx, sy); g.rotate(Math.atan2(-(j.vz || 0), j.vx || 1) * (j.vx < 0 ? -1 : 1) + (j.vx < 0 ? Math.PI : 0)); g.drawImage(miscSprite('friesdart').img, -3, 0); g.restore(); }
+    if (j.type === 'friesdart') { g.save(); g.translate(sx, sy); g.rotate(Math.atan2(-(j.vz || 0), j.vx || 1) * (j.vx < 0 ? -1 : 1) + (j.vx < 0 ? Math.PI : 0)); g.scale(SC, SC); g.drawImage(miscSprite('friesdart').img, -3, 0); g.restore(); }
     else if (j.type === 'sushi') { this.blit(g, miscSprite('sushi'), sx, sy + 2, 1, j.t * 0.3); }
     else if (j.type === 'burger') { this.blit(g, miscSprite('burger'), sx, sy + 4, 1, j.t * 0.25 * (j.dir || 1)); }
     else if (j.type === 'bigburger') { this.blit(g, miscSprite('bigburger'), sx, sy + 7, 1, j.t * 0.15 * (j.dir || 1)); if (fx && (this.frame & 1)) fx.part({ x: j.x, y: j.y, z: j.z + 6, vx: 0, vz: 0.5, life: 8, size: 2, kind: 'star', color: '#ffd23f' }); }
@@ -324,12 +327,12 @@ export class Renderer {
     else if (j.type === 'pizza' || j.type === 'pizzaspin') {
       const ws = weaponSprite('pizza');
       const rot = j.roll ? j.x * 0.12 : j.t * 0.5 * (j.dir || 1);
-      g.save(); g.translate(sx, sy - (j.roll ? 7 : 0)); g.rotate(rot); g.drawImage(ws.img, -7, -7); g.restore();
+      g.save(); g.translate(sx, sy - (j.roll ? 14 : 0)); g.rotate(rot); g.scale(SC, SC); g.drawImage(ws.img, -7, -7); g.restore();
       if (fx && j.roll && (this.frame & 1)) fx.part({ x: j.x - (j.dir || 1) * 6, y: j.y, z: 1, vx: -(j.dir || 1) * 0.5, vz: 0.4, life: 10, size: 2, kind: 'dust', color: '#c9b89a' });
     }
     else if (j.type === 'meteor') {
       const ms = miscSprite('meteor');
-      this.blit(g, ms, sx, sy + 8, 1);
+      this.blit(g, ms, sx, sy + 8, 1, 0, 1, 1.5);
       if (fx) for (let i = 0; i < 3; i++) fx.part({ x: j.x + (Math.random() * 20 - 10), y: j.y + (Math.random() * 6 - 3), z: j.z + 12 + Math.random() * 10, vx: Math.random() - 0.5, vz: Math.random() * 2 + 1, life: 10 + Math.random() * 8, size: 2 + (Math.random() * 2 | 0), kind: 'spark', color: Math.random() < 0.5 ? '#ff9a3a' : '#ffd23f' });
     }
   }

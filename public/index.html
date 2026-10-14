@@ -13,17 +13,29 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="stage">
-  <canvas id="game" width="320" height="180"></canvas>
-  <div id="crt"></div>
-  <div id="touch" class="hidden"></div>
-  <div id="topbar">
-    <span id="netInfo"></span>
-    <button id="btnMute" title="音效">🔊</button>
-    <button id="btnBgm" title="音樂">♪</button>
-    <button id="btnFull" title="全螢幕">⛶</button>
-    <button id="btnLeave" title="離開" class="hidden">✕</button>
+<div id="cabinet">
+  <div class="marquee"><span class="m1">速食街機</span><span class="m2">FAST FOOD ARCADE</span><i class="bulb b1"></i><i class="bulb b2"></i></div>
+  <div class="bezel">
+    <div id="stage">
+      <canvas id="game" width="320" height="180"></canvas>
+      <div id="crt"></div>
+    </div>
+    <div class="sticker s1">1P</div><div class="sticker s2">2P</div>
   </div>
+  <div class="panel">
+    <div class="coin"><span class="slot"></span><span class="coinText">INSERT COIN</span></div>
+    <div class="stick"><div class="ball"></div></div>
+    <div class="btns"><i class="b red"></i><i class="b blue"></i><i class="b green"></i><i class="b yellow"></i></div>
+    <div class="deck"></div>
+  </div>
+</div>
+<div id="touch" class="hidden"></div>
+<div id="topbar">
+  <span id="netInfo"></span>
+  <button id="btnMute" title="音效">🔊</button>
+  <button id="btnBgm" title="音樂">♪</button>
+  <button id="btnFull" title="全螢幕">⛶</button>
+  <button id="btnLeave" title="離開" class="hidden">✕</button>
 </div>
 
 <div id="overlay">
